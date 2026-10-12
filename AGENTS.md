@@ -75,9 +75,9 @@ Two updates go with every feature:
   [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `docs/decisions/` — [MADR](https://adr.github.io/madr/) v4 ADRs.
 - `LICENSE` — MIT.
-- No git remote is configured yet. **Do not invent URLs** (repo, issues,
-  changelog compare links). Add them when hosting is decided, together with a
-  hosting ADR.
+- The git remote is `origin`
+  (`git@github.com:wvansteen/bp-th-contract-features.git`). **Do not invent
+  URLs** (issues, changelog compare links); add them only when they exist.
 
 ## Verification
 
@@ -88,3 +88,9 @@ output — evidence first, not confidence.
   Contents, and the changelog entry exists.
 - Code changes: run the build, typecheck, and tests once tooling exists.
 - Commit small, focused changes with clear messages.
+
+## Integration
+
+Integration is always branch and PR. Push the work to a feature branch on
+`origin` and open a pull request against `main`; never push directly to
+`main`.
