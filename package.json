@@ -1,0 +1,13 @@
+{
+  "name": "bp-th-contract-features",
+  "type": "module",
+  "packageManager": "bun@1.2.23",
+  "scripts": {
+    "dev:setup": "podman compose up -d",
+    "dev": "podman compose up -d && bun --hot src/index.ts"
+  },
+  "dependencies": {
+    "elysia": "^1.4.30",
+    "inngest": "^4.23.0"
+  }
+}

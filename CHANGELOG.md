@@ -18,3 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   founding decision to use ADRs (ADR 0000).
 - `AGENTS.md` describing the development loop (Plan → Decision → Implement →
   Document) and repository conventions for agents.
+- Podman Compose harness (`compose.yaml`) running the Inngest dev server UI
+  on `http://localhost:8288`, plus the Bun project scaffold (`package.json`
+  with `dev`/`dev:setup` scripts and `elysia` + `inngest` dependencies, Bun
+  `1.2.23` pinned via `.tool-versions`, `.bun-version`, and
+  `packageManager`).
