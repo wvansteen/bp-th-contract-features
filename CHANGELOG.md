@@ -16,3 +16,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Architecture Decision Record process using
   [MADR](https://adr.github.io/madr/), including an ADR template and the
   founding decision to use ADRs (ADR 0000).
+- `AGENTS.md` describing the development loop (Plan → Decision → Implement →
+  Document) and repository conventions for agents.
