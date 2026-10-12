@@ -23,3 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with `dev`/`dev:setup` scripts and `elysia` + `inngest` dependencies, Bun
   `1.2.23` pinned via `.tool-versions`, `.bun-version`, and
   `packageManager`).
+- ADRs 0001-0004: Podman Compose container harness, Elysia web
+  framework, Inngest workflow engine, and Bun version pinning with the
+  `dev`/`dev:setup` script contract.
+- Hello-world pipeline loop: Elysia API on `:3000` with `GET /` health
+  check and Inngest serve handler at `/api/inngest` (via the
+  `inngest/bun` adapter), `hello-world` function triggered by the
+  `demo/hello.world` event (Inngest v4 `triggers` form), and
+  `src/send.ts` to publish the event for local runs observable in the
+  Inngest UI on `:8288`. Host commands require `INNGEST_DEV=1` so the
+  SDK uses the local dev server instead of cloud mode.

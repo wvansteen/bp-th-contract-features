@@ -7,6 +7,8 @@ PoC generative AI pipeline to structure and interact with contract documents.
 ## Table of Contents
 
 - [Background](#background)
+- [Install](#install)
+- [Usage](#usage)
 - [Project Status](#project-status)
 - [Architecture Decisions](#architecture-decisions)
 - [Contributing](#contributing)
@@ -44,12 +46,74 @@ effects system where it makes sense, with one deliberate exception: **logging is
 allowed as a side effect** rather than being fully managed. This is a pragmatic
 concession for the PoC, not a permanent rule.
 
+## Install
+
+Prerequisites (no global `bun` or `podman-compose` version assumed):
+
+- [Podman](https://podman.io/) with the `podman-compose` provider
+  (`podman compose ...`).
+- [Bun](https://bun.sh/) via an asdf-compatible version manager
+  ([mise](https://mise.jdx.dev/) preferred, `asdf` with `asdf-bun`
+  acceptable). The pinned version is `1.2.23` (see `.tool-versions`,
+  `.bun-version`, and `packageManager` in `package.json`).
+
+If `podman compose` cannot reach the engine, the user Podman socket may
+need starting first:
+
+```sh
+systemctl --user start podman.socket
+```
+
+Then install dependencies:
+
+```sh
+bun install
+```
+
+## Usage
+
+Start the local Inngest dev server (UI at `http://localhost:8288`):
+
+```sh
+bun run dev:setup
+```
+
+Run the Elysia API with the Inngest serve handler (starts infra first,
+then serves on `http://localhost:3000`):
+
+```sh
+bun run dev
+```
+
+Open `http://localhost:8288` and confirm the `hello-world` function is
+listed. Then publish the demo event — `INNGEST_DEV=1` is required for
+host commands, otherwise the SDK defaults to cloud mode and the serve
+route returns 500s:
+
+```sh
+INNGEST_DEV=1 bun run src/send.ts
+```
+
+This sends the `demo/hello.world` event, runs the `hello-world`
+function (one `say-hello` step returning `Hello local`), and the
+completed run appears in the Inngest UI Runs tab. `GET /` returns
+`{ ok: true }` as a health check.
+
+Implementation notes: the serve handler at `/api/inngest` uses the
+official `inngest/bun` adapter, and the function uses the Inngest v4
+`triggers: [{ event: "demo/hello.world" }]` form. The `compose.yaml`
+points the dev server at the host API via
+`http://host.containers.internal:3000/api/inngest` (Podman networking,
+not `localhost` inside the container).
+
 ## Project Status
 
-Pre-scaffold. So far this repository contains only documentation and process:
-the README, a changelog, an MIT license, and the ADR setup. There is no
-application code, package manifest, or build tooling yet. Features will be added
-one at a time from here.
+Hello-world loop working. The repository runs a local Elysia API on
+`:3000` wired to a local Inngest dev server on `:8288` via Podman
+Compose: `src/send.ts` publishes `demo/hello.world` and the
+`hello-world` function run is observable in the Inngest UI. Contract
+document ingestion itself is still undiscovered — features continue to
+be added one at a time from here.
 
 ## Architecture Decisions
 
@@ -61,6 +125,14 @@ Significant technical decisions are captured as Architecture Decision Records
   template to copy when recording a new decision.
 - [`docs/decisions/0000-use-markdown-architectural-decision-records.md`](docs/decisions/0000-use-markdown-architectural-decision-records.md)
   — the founding decision to use ADRs at all.
+- [`docs/decisions/0001-container-harness-podman-compose.md`](docs/decisions/0001-container-harness-podman-compose.md)
+  — Podman + podman-compose as the local container harness.
+- [`docs/decisions/0002-web-framework-elysia.md`](docs/decisions/0002-web-framework-elysia.md)
+  — Elysia on Bun as the web framework.
+- [`docs/decisions/0003-workflow-engine-inngest.md`](docs/decisions/0003-workflow-engine-inngest.md)
+  — Inngest as the workflow engine.
+- [`docs/decisions/0004-bun-version-and-scripts.md`](docs/decisions/0004-bun-version-and-scripts.md)
+  — Bun version pinning and the `dev`/`dev:setup` script contract.
 
 To add an ADR, copy `adr-template.md` to `docs/decisions/NNNN-short-title.md`
 (use the next free number), fill it in, and set its `status`. Once a decision is
