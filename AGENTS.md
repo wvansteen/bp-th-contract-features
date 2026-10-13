@@ -68,9 +68,9 @@ Two updates go with every feature:
 - Add a bullet to the `[Unreleased]` section of `CHANGELOG.md` under the matching
   Keep a Changelog category: `Added`, `Changed`, `Deprecated`, `Removed`,
   `Fixed`, or `Security`. Keep bullets short, user-facing summaries of
-  shipped application features, not implementation detail. Process,
-  dev environment, and ADR material are out of scope for the
-  changelog.
+  shipped application features, not implementation detail. Process
+  (including changes to `AGENTS.md` itself), dev environment, and ADR
+  material are out of scope for the changelog.
 
 ## Scope
 
