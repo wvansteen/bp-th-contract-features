@@ -8,15 +8,15 @@ decision-makers: William Van Steen
 
 ## Context and Problem Statement
 
-Local infrastructure (Inngest dev server, databases) runs in containers
-while the Elysia API runs on host Bun. The harness must run local infra
-containers simply and reproducibly.
+Local infra (Inngest dev server, later databases) runs in containers
+while the Elysia API runs on host Bun. The harness should stay simple
+and reproducible.
 
 ## Decision Drivers
 
-* FOSS only; no Docker Desktop dependency.
-* As simple as docker-compose: one canonical file.
-* No Helm charts or Kubernetes manifests for local dev.
+* FOSS only, no Docker Desktop.
+* One canonical compose file.
+* No Kubernetes manifests for local dev.
 
 ## Considered Options
 

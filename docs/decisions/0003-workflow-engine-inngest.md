@@ -9,7 +9,7 @@ decision-makers: William Van Steen
 ## Context and Problem Statement
 
 The pipeline needs a worker engine, starting with a hello-world loop:
-one event from the Elysia API, observed in a local UI.
+one event from the API, observed in a local UI.
 
 ## Decision Drivers
 
@@ -27,7 +27,7 @@ one event from the Elysia API, observed in a local UI.
 ## Decision Outcome
 
 Chosen option: "Inngest + inngest-js", because it is the simplest to set
-up, is already familiar, and there is no reason to skip a worker system.
+up and already familiar.
 
 ### Consequences
 

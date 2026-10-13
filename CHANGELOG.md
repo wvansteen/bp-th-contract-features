@@ -9,14 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial repository scaffolding: README following
-  [standard-readme](https://github.com/RichardLitt/standard-readme), an MIT
-  license, and this changelog following
-  [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-- Architecture Decision Record process using
-  [MADR](https://adr.github.io/madr/), including an ADR template and the
-  founding decision to use ADRs (ADR 0000).
-- `AGENTS.md` describing the development loop (Plan → Decision → Implement →
-  Document) and repository conventions for agents.
-- Hello-world pipeline: publish an event from the Elysia API and observe
-  the run in the local Inngest UI.
+- Repo scaffolding: standard-readme README, MIT license, this changelog.
+- ADR process ([MADR](https://adr.github.io/madr/)) with template and
+  founding decision (ADR 0000).
+- `AGENTS.md` agent development loop and repo conventions.
+- Hello-world pipeline: event from the Elysia API, observed in the
+  local Inngest UI.

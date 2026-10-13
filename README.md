@@ -16,35 +16,26 @@ PoC generative AI pipeline to structure and interact with contract documents.
 
 ## Background
 
-This repository is a proof of concept. Its goal is to **build and test a small
-generative AI pipeline to structure and interact with content from contract
-documents**.
+A proof of concept for a small generative AI pipeline that structures
+contract documents and lets people interact with them.
 
-We are starting from a state of zero. The problem being solved — what the
-contract documents are, who uses them, and what "structure and interact" should
-ultimately mean — is still being discovered. Rather than commit to an
-implementation prematurely, this repository first establishes the scaffolding
-and the lightweight documentation process that will carry those decisions as
-they are made.
+The problem space is still open: the documents, the users, and what
+"structure and interact" means are all undecided. This repo starts with
+scaffolding and a light docs process, and records each decision as it
+comes.
 
-The stack below is **intended, non-binding context** for how the PoC will
-likely be built. It is deliberately *not* recorded as a set of accepted
-decisions yet; each piece will be confirmed (or rejected) via an Architecture
-Decision Record when we reach it:
+Likely stack, not decided (each piece gets an ADR when we reach it):
 
-- **Pipeline** — [Inngest](https://www.inngest.com/), for durable, event-driven
+- Pipeline: [Inngest](https://www.inngest.com/), durable event-driven
   workflow steps.
-- **Web server** — [Elysia](https://elysiajs.com/), running on
-  [Bun](https://bun.sh/) with TypeScript.
-- **Frontend** — [Svelte](https://svelte.dev/) single-page app, including the
-  chatbot interface for interacting with contract content.
-- **LLM steps** — [LangChain](https://js.langchain.com/), for the generative
-  parts of the pipeline.
+- Web server: [Elysia](https://elysiajs.com/) on [Bun](https://bun.sh/),
+  TypeScript.
+- Frontend: [Svelte](https://svelte.dev/) SPA, including the chatbot UI.
+- LLM steps: [LangChain](https://js.langchain.com/) for the generative
+  parts.
 
-Stylistically, the code aims to be *mostly functional* and to lean on a managed
-effects system where it makes sense, with one deliberate exception: **logging is
-allowed as a side effect** rather than being fully managed. This is a pragmatic
-concession for the PoC, not a permanent rule.
+Code is mostly functional, using a managed effects system where it earns
+its keep. Logging as a side effect is fine here.
 
 ## Install
 
@@ -58,82 +49,55 @@ bun install
 
 ## Usage
 
-Start the local Inngest dev server (UI at `http://localhost:8288`):
-
 ```sh
-bun run dev:setup
+bun run dev:setup  # Inngest dev server, UI at http://localhost:8288
+bun run dev        # Elysia API on http://localhost:3000
 ```
 
-Run the Elysia API with the Inngest serve handler (starts infra first,
-then serves on `http://localhost:3000`):
-
-```sh
-bun run dev
-```
-
-Open `http://localhost:8288` and confirm the `hello-world` function is
-listed. Then publish the demo event (`INNGEST_DEV=1` is provided by
-`.env`):
+Confirm the `hello-world` function is listed at `http://localhost:8288`,
+then publish the demo event (`INNGEST_DEV=1` comes from `.env`):
 
 ```sh
 bun run src/send.ts
 ```
 
-This sends the `demo/hello.world` event, runs the `hello-world`
-function (one `say-hello` step returning `Hello local`), and the
-completed run appears in the Inngest UI Runs tab. `GET /` returns
-`{ ok: true }` as a health check.
+The run shows in the Inngest UI. `GET /` returns `{ ok: true }`.
 
 ## Project Status
 
-Hello-world loop working. The repository runs a local Elysia API on
-`:3000` wired to a local Inngest dev server on `:8288` via Podman
-Compose: `src/send.ts` publishes `demo/hello.world` and the
-`hello-world` function run is observable in the Inngest UI. Contract
-document ingestion itself is still undiscovered — features continue to
-be added one at a time from here.
+Hello-world loop works: Elysia on `:3000` wired to Inngest on `:8288`
+via Podman Compose. Contract ingestion itself is still undiscovered.
 
 ## Architecture Decisions
 
-Significant technical decisions are captured as Architecture Decision Records
-(ADRs) in [`docs/decisions/`](docs/decisions/), using the
-[MADR](https://adr.github.io/madr/) format.
+Decisions live as ADRs in [`docs/decisions/`](docs/decisions/)
+([MADR](https://adr.github.io/madr/)):
 
-- [`docs/decisions/adr-template.md`](docs/decisions/adr-template.md) — the
-  template to copy when recording a new decision.
+- [`docs/decisions/adr-template.md`](docs/decisions/adr-template.md)
+  — copy for new decisions.
 - [`docs/decisions/0000-use-markdown-architectural-decision-records.md`](docs/decisions/0000-use-markdown-architectural-decision-records.md)
-  — the founding decision to use ADRs at all.
+  — using ADRs at all.
 - [`docs/decisions/0001-container-harness-podman-compose.md`](docs/decisions/0001-container-harness-podman-compose.md)
-  — Podman + podman-compose as the local container harness.
+  — Podman Compose as local container harness.
 - [`docs/decisions/0002-web-framework-elysia.md`](docs/decisions/0002-web-framework-elysia.md)
-  — Elysia on Bun as the web framework.
+  — Elysia on Bun as web framework.
 - [`docs/decisions/0003-workflow-engine-inngest.md`](docs/decisions/0003-workflow-engine-inngest.md)
-  — Inngest as the workflow engine.
+  — Inngest as workflow engine.
 - [`docs/decisions/0004-bun-version-and-scripts.md`](docs/decisions/0004-bun-version-and-scripts.md)
-  — Bun version pinned once via `packageManager`.
+  — Bun version pinned via `packageManager`.
 
-To add an ADR, copy `adr-template.md` to `docs/decisions/NNNN-short-title.md`
-(use the next free number), fill it in, and set its `status`. Once a decision is
-superseded, keep the old ADR and link the replacement rather than deleting
-history.
+Superseded ADRs stay linked, never deleted.
 
 ## Contributing
 
-Questions and discussion are welcome via GitHub Issues in this repository, once
-a remote is configured. Pull requests are accepted.
+Questions welcome via GitHub Issues; pull requests accepted. Two rules:
 
-This repository is developed decision-first. Two rules apply to every change:
+1. A choice between real alternatives gets an ADR in `docs/decisions/`
+   first.
+2. A shipped feature gets a bullet in `CHANGELOG.md` under
+   `[Unreleased]`.
 
-1. **A decision becomes an ADR.** If you choose between meaningful alternatives
-   (a library, a data model, a hosting approach), record it in
-   `docs/decisions/` before or alongside the code that depends on it.
-2. **A feature becomes a changelog entry.** Add a bullet under the matching
-   heading in the `[Unreleased]` section of [`CHANGELOG.md`](CHANGELOG.md),
-   using one of the Keep a Changelog categories (`Added`, `Changed`,
-   `Deprecated`, `Removed`, `Fixed`, `Security`).
-
-Keep changes small and focused. Because this is a PoC, prefer the smallest
-change that answers the current question, and let the ADRs explain the rest.
+Keep changes small; let the ADRs explain the rest.
 
 ## License
 
