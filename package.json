@@ -4,7 +4,7 @@
   "packageManager": "bun@1.2.23",
   "scripts": {
     "dev:setup": "podman compose up -d",
-    "dev": "podman compose up -d && bun --hot src/index.ts"
+    "dev": "bun --hot src/index.ts"
   },
   "dependencies": {
     "elysia": "^1.4.30",
