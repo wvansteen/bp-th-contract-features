@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `AGENTS.md` now requires lean ADRs (decision, not reasoning), in-place
+  fixes while unmerged, and default out-of-scope working.
+
 - Integration is now always branch and PR against `main` (see `AGENTS.md`);
   the git remote is `origin`
   (`git@github.com:wvansteen/bp-th-contract-features.git`).
