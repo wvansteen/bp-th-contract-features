@@ -97,12 +97,12 @@ bun run dev
 ```
 
 Open `http://localhost:8288` and confirm the `hello-world` function is
-listed. Then publish the demo event — `INNGEST_DEV=1` is required for
-host commands, otherwise the SDK defaults to cloud mode and the serve
-route returns 500s:
+listed. Then publish the demo event (`INNGEST_DEV=1` comes from `.env`,
+loaded via `mise.toml`, otherwise the SDK defaults to cloud mode and
+the serve route returns 500s):
 
 ```sh
-INNGEST_DEV=1 bun run src/send.ts
+bun run src/send.ts
 ```
 
 This sends the `demo/hello.world` event, runs the `hello-world`
