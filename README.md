@@ -131,9 +131,6 @@ Significant technical decisions are captured as Architecture Decision Records
 - [`docs/decisions/0003-workflow-engine-inngest.md`](docs/decisions/0003-workflow-engine-inngest.md)
   — Inngest as the workflow engine.
 - [`docs/decisions/0004-bun-version-and-scripts.md`](docs/decisions/0004-bun-version-and-scripts.md)
-  — Bun version pinning and the `dev`/`dev:setup` script contract
-  (superseded by ADR-0005).
-- [`docs/decisions/0005-bun-version-packagemanager-only.md`](docs/decisions/0005-bun-version-packagemanager-only.md)
   — Bun version pinned once via `packageManager`.
 
 To add an ADR, copy `adr-template.md` to `docs/decisions/NNNN-short-title.md`

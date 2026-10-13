@@ -8,14 +8,15 @@ decision-makers: William Van Steen
 
 ## Context and Problem Statement
 
-We need a local environment for running infrastructure services (Inngest dev server, databases) while developing the contract-features pipeline. The Elysia API runs on host Bun, not in a container, so the harness only manages infra containers. How do we run local infra containers simply and reproducibly?
+Local infrastructure (Inngest dev server, databases) runs in containers
+while the Elysia API runs on host Bun. The harness must run local infra
+containers simply and reproducibly.
 
 ## Decision Drivers
 
-* FOSS only for the local harness; no Docker Desktop dependency
-* Compose-simple: as simple or simpler than docker-compose, single canonical file
-* No Helm charts / no Kubernetes manifests for local dev
-* OCI-compatible containers
+* FOSS only; no Docker Desktop dependency.
+* As simple as docker-compose: one canonical file.
+* No Helm charts or Kubernetes manifests for local dev.
 
 ## Considered Options
 
@@ -26,41 +27,14 @@ We need a local environment for running infrastructure services (Inngest dev ser
 
 ## Decision Outcome
 
-Chosen option: "Podman + podman-compose (Compose Spec)", because it is daemonless and rootless-native on Linux, uses a single canonical `compose.yaml`, and meets all drivers with the least complexity.
+Chosen option: "Podman + podman-compose (Compose Spec)", because it is
+daemonless and rootless on Linux with a single `compose.yaml`.
 
 ### Consequences
 
-* Good, because infra is defined once in the canonical `compose.yaml` tested with `podman compose`.
-* Good, because only infra is containerized; the Elysia API stays on host Bun, keeping the dev loop fast.
-* Bad, because contributors must have Podman plus a compose provider instead of plain Docker.
+* Good, because infra is defined once; the API stays on host Bun.
+* Bad, because contributors need Podman plus a compose provider.
 
 ### Confirmation
 
-Infra-only rule holds: `compose.yaml` contains no app service. `podman compose config` validates the canonical file.
-
-## Pros and Cons of the Options
-
-### Podman + podman-compose (Compose Spec)
-
-* Good, because daemonless and rootless-native on Linux.
-* Good, because a single `compose.yaml` covers all infra services.
-* Good, because fully FOSS and OCI-compatible.
-
-### Podman Quadlet
-
-* Good, because native systemd integration with Podman.
-* Bad, because it splits configuration into per-container files instead of one compose file, adding complexity for this PoC.
-
-### Rancher Desktop (containerd / dockerd)
-
-* Good, because it provides a desktop Kubernetes plus container runtime.
-* Bad, because it does not support the Podman engine, and upstream support is not planned.
-
-### kind / k3d / minikube
-
-* Good, because they reproduce production-like Kubernetes locally.
-* Bad, because Kubernetes manifests violate the simplicity driver; no Helm or K8s manifests for local dev.
-
-## More Information
-
-Canonical file: `compose.yaml`. Elysia runs on host Bun; containers are infra-only.
+`compose.yaml` contains no app service; `podman compose config` passes.
