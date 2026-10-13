@@ -108,3 +108,7 @@ output — evidence first, not confidence.
 Integration is always branch and PR. Push the work to a feature branch on
 `origin` and open a pull request against `main`; never push directly to
 `main`.
+
+After the plan is implemented, handle each round of review feedback as
+its own commit and push it separately — one feedback round, one commit,
+one push. Never batch unrelated feedback rounds into a single commit.
