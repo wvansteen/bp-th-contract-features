@@ -48,34 +48,9 @@ concession for the PoC, not a permanent rule.
 
 ## Install
 
-Two dependencies, nothing else:
-
-- [Podman](https://podman.io/) with the `podman-compose` provider
-  (`podman compose ...`).
-- [mise](https://mise.jdx.dev/) (preferred) **or** [Bun](https://bun.sh/)
-  `1.2.23` directly. The version is pinned once via `packageManager` in
-  `package.json` — that pin is the single source of truth; no other
-  version files are used. `mise.toml` lets mise read that pin, so:
-
-```sh
-mise install
-```
-
-mise needs shell integration once per machine (fish shown; see the
-[mise docs](https://mise.jdx.dev/getting-started.html) for other shells):
-
-```sh
-echo 'mise activate fish | source' >> ~/.config/fish/config.fish
-```
-
-If `podman compose` cannot reach the engine, the user Podman socket may
-need starting first:
-
-```sh
-systemctl --user start podman.socket
-```
-
-Then install dependencies:
+- A compose daemon. Recommended: [Podman](https://podman.io/).
+- [mise](https://mise.jdx.dev/) or [Bun](https://bun.sh/) `1.2.23`
+  (pinned via `packageManager` in `package.json`).
 
 ```sh
 bun install
@@ -97,9 +72,8 @@ bun run dev
 ```
 
 Open `http://localhost:8288` and confirm the `hello-world` function is
-listed. Then publish the demo event (`INNGEST_DEV=1` comes from `.env`,
-loaded via `mise.toml`, otherwise the SDK defaults to cloud mode and
-the serve route returns 500s):
+listed. Then publish the demo event (`INNGEST_DEV=1` is provided by
+`.env`):
 
 ```sh
 bun run src/send.ts
@@ -109,13 +83,6 @@ This sends the `demo/hello.world` event, runs the `hello-world`
 function (one `say-hello` step returning `Hello local`), and the
 completed run appears in the Inngest UI Runs tab. `GET /` returns
 `{ ok: true }` as a health check.
-
-Implementation notes: the serve handler at `/api/inngest` uses the
-official `inngest/bun` adapter, and the function uses the Inngest v4
-`triggers: [{ event: "demo/hello.world" }]` form. The `compose.yaml`
-points the dev server at the host API via
-`http://host.containers.internal:3000/api/inngest` (Podman networking,
-not `localhost` inside the container).
 
 ## Project Status
 
