@@ -48,13 +48,25 @@ concession for the PoC, not a permanent rule.
 
 ## Install
 
-Prerequisites (no global `bun` or `podman-compose` version assumed):
+Two dependencies, nothing else:
 
 - [Podman](https://podman.io/) with the `podman-compose` provider
   (`podman compose ...`).
-- [Bun](https://bun.sh/) `1.2.23`, pinned once via `packageManager` in
-  `package.json`. That pin is the single source of truth; no other
-  version files are used.
+- [mise](https://mise.jdx.dev/) (preferred) **or** [Bun](https://bun.sh/)
+  `1.2.23` directly. The version is pinned once via `packageManager` in
+  `package.json` — that pin is the single source of truth; no other
+  version files are used. `mise.toml` lets mise read that pin, so:
+
+```sh
+mise install
+```
+
+mise needs shell integration once per machine (fish shown; see the
+[mise docs](https://mise.jdx.dev/getting-started.html) for other shells):
+
+```sh
+echo 'mise activate fish | source' >> ~/.config/fish/config.fish
+```
 
 If `podman compose` cannot reach the engine, the user Podman socket may
 need starting first:
