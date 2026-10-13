@@ -67,7 +67,8 @@ Two updates go with every feature:
   standard-readme compliant (see below).
 - Add a bullet to the `[Unreleased]` section of `CHANGELOG.md` under the matching
   Keep a Changelog category: `Added`, `Changed`, `Deprecated`, `Removed`,
-  `Fixed`, or `Security`.
+  `Fixed`, or `Security`. Keep bullets short, user-facing summaries, not
+  implementation detail.
 
 ## Scope
 
