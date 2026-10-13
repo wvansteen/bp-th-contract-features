@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: "superseded by ADR-0005"
 date: 2026-10-12
 decision-makers: William Van Steen
 ---

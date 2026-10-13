@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration is now always branch and PR against `main` (see `AGENTS.md`);
   the git remote is `origin`
   (`git@github.com:wvansteen/bp-th-contract-features.git`).
+- Bun version is now pinned once via `packageManager` in `package.json`
+  (ADR-0005 supersedes ADR-0004); `.tool-versions` and `.bun-version`
+  are removed.
 
 ### Added
 
@@ -27,11 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Podman Compose harness (`compose.yaml`) running the Inngest dev server UI
   on `http://localhost:8288`, plus the Bun project scaffold (`package.json`
   with `dev`/`dev:setup` scripts and `elysia` + `inngest` dependencies, Bun
-  `1.2.23` pinned via `.tool-versions`, `.bun-version`, and
-  `packageManager`).
-- ADRs 0001-0004: Podman Compose container harness, Elysia web
-  framework, Inngest workflow engine, and Bun version pinning with the
-  `dev`/`dev:setup` script contract.
+  `1.2.23` pinned via `packageManager`).
+- ADRs 0001-0005: Podman Compose container harness, Elysia web
+  framework, Inngest workflow engine, Bun version pinning with the
+  `dev`/`dev:setup` script contract (ADR-0004, superseded by ADR-0005
+  which pins via `packageManager` only).
 - Hello-world pipeline loop: Elysia API on `:3000` with `GET /` health
   check and Inngest serve handler at `/api/inngest` (via the
   `inngest/bun` adapter), `hello-world` function triggered by the

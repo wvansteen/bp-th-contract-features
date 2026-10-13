@@ -63,6 +63,14 @@ Two updates go with every feature:
   Keep a Changelog category: `Added`, `Changed`, `Deprecated`, `Removed`,
   `Fixed`, or `Security`.
 
+## Scope
+
+Everything is out of scope by default. Solve the narrowest problem at
+hand: no CI support, no compatibility matrices, no speculative
+generality. If a task balloons into custom scope or extra tooling
+support, stop — the requirements or the task description were wrong, not
+the scope. Narrow the task instead of widening the work.
+
 ## Where things live
 
 - `README.md` — follows [standard-readme](https://github.com/RichardLitt/standard-readme).

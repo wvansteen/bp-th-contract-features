@@ -52,10 +52,9 @@ Prerequisites (no global `bun` or `podman-compose` version assumed):
 
 - [Podman](https://podman.io/) with the `podman-compose` provider
   (`podman compose ...`).
-- [Bun](https://bun.sh/) via an asdf-compatible version manager
-  ([mise](https://mise.jdx.dev/) preferred, `asdf` with `asdf-bun`
-  acceptable). The pinned version is `1.2.23` (see `.tool-versions`,
-  `.bun-version`, and `packageManager` in `package.json`).
+- [Bun](https://bun.sh/) `1.2.23`, pinned once via `packageManager` in
+  `package.json`. That pin is the single source of truth; no other
+  version files are used.
 
 If `podman compose` cannot reach the engine, the user Podman socket may
 need starting first:
@@ -132,7 +131,10 @@ Significant technical decisions are captured as Architecture Decision Records
 - [`docs/decisions/0003-workflow-engine-inngest.md`](docs/decisions/0003-workflow-engine-inngest.md)
   — Inngest as the workflow engine.
 - [`docs/decisions/0004-bun-version-and-scripts.md`](docs/decisions/0004-bun-version-and-scripts.md)
-  — Bun version pinning and the `dev`/`dev:setup` script contract.
+  — Bun version pinning and the `dev`/`dev:setup` script contract
+  (superseded by ADR-0005).
+- [`docs/decisions/0005-bun-version-packagemanager-only.md`](docs/decisions/0005-bun-version-packagemanager-only.md)
+  — Bun version pinned once via `packageManager`.
 
 To add an ADR, copy `adr-template.md` to `docs/decisions/NNNN-short-title.md`
 (use the next free number), fill it in, and set its `status`. Once a decision is
