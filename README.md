@@ -22,6 +22,8 @@ contract documents and lets people interact with them.
 
 - [Podman](https://podman.io/) for the Inngest dev server.
 - [Bun](https://bun.sh/) `1.2.23` (pinned in `package.json`).
+- [Ollama](https://ollama.com/) running locally with a model pulled
+  (`ollama pull llama3.2`).
 
 ```sh
 bun install
@@ -38,7 +40,12 @@ bun run dev        # Elysia API on http://localhost:3000
 bun run src/send.ts
 ```
 
-`GET /` returns `{ ok: true }`.
+- `GET /` returns `{ ok: true }`.
+- `GET /chat` serves a chat page that streams replies from a local
+  [Ollama](https://ollama.com/) model.
+
+The chat page's Ollama URL is set in `public/index.html`, not in the
+environment.
 
 ## Architecture Decisions
 
