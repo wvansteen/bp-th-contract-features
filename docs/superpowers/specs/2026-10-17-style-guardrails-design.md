@@ -50,6 +50,7 @@ does not fail a tool call, so warnings are not an enforcement mechanism here.
 | no `break`/`continue`/`goto` | _satisfied by the above_                                                       | no loops leaves only `switch`/`break`, which is idiomatic and stays allowed. `goto` does not exist in JS                    |
 | no `any`                     | `@typescript-eslint/no-explicit-any`                                           | the literal token                                                                                                           |
 |                              | `@typescript-eslint/no-unsafe-{argument,assignment,call,member-access,return}` | `any` leaking in from `JSON.parse`, `res.json()`, or an untyped dependency: the leak `no-explicit-any` cannot see           |
+|                              | `@typescript-eslint/restrict-template-expressions` with `allowAny: false`      | `any` interpolated into a template literal, which the `no-unsafe-*` family does not cover and the rule allows by default    |
 |                              | `@typescript-eslint/no-unsafe-function-type`                                   | the `Function` type                                                                                                         |
 
 `functional/no-expression-statements`, `functional/no-return-void`,

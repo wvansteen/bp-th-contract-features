@@ -268,7 +268,9 @@ locks section. Every rule below is `"error"`:
   `@typescript-eslint/no-unsafe-call`,
   `@typescript-eslint/no-unsafe-member-access`,
   `@typescript-eslint/no-unsafe-return`,
-  `@typescript-eslint/no-unsafe-function-type`
+  `@typescript-eslint/no-unsafe-function-type`,
+  `@typescript-eslint/restrict-template-expressions` with
+  `["error", { "allowAny": false }]`
 - no route around a type error: `@typescript-eslint/ban-ts-comment` with
   `["error", { "ts-ignore": true, "ts-expect-error": true }]`,
   `@typescript-eslint/no-non-null-assertion`,

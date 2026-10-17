@@ -38,6 +38,10 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-member-access": "error",
       "@typescript-eslint/no-unsafe-return": "error",
       "@typescript-eslint/no-unsafe-function-type": "error",
+      "@typescript-eslint/restrict-template-expressions": [
+        "error",
+        { allowAny: false },
+      ],
       "@typescript-eslint/ban-ts-comment": [
         "error",
         { "ts-ignore": true, "ts-expect-error": true },
