@@ -1412,16 +1412,31 @@ function post(body: unknown) {
 }
 
 describe("POST /process-contracts", () => {
-  it("returns 201 and sends box/list.files", async () => {
+  it("returns 201 and sends box/list.files carrying the requested count", async () => {
     const inngest = fakeInngest();
     const app = createContractsRoutes({ inngest, store: fakeStore([]) });
 
-    const response = await app.handle(post({ maxDocuments: 5 }));
+    // Posted value deliberately differs from any literal in the route, so a
+    // hardcoded payload cannot pass.
+    const response = await app.handle(post({ maxDocuments: 7 }));
 
     expect(response.status).toBe(201);
     expect(inngest.events).toHaveLength(1);
     expect(inngest.events[0].name).toBe("box/list.files");
-    expect(inngest.events[0].data).toEqual({ maxDocuments: 5 });
+    expect(inngest.events[0].data).toEqual({ maxDocuments: 7 });
+  });
+
+  it("returns 500 when the send fails rather than reporting 201", async () => {
+    const failing = {
+      async send() {
+        throw new Error("inngest unreachable");
+      },
+    };
+    const app = createContractsRoutes({ inngest: failing, store: fakeStore([]) });
+
+    const response = await app.handle(post({ maxDocuments: 5 }));
+
+    expect(response.status).toBe(500);
   });
 
   it("returns 422 when maxDocuments is missing", async () => {
@@ -1547,11 +1562,25 @@ const app = new Elysia()
   .use(createContractsRoutes({ inngest, store: documentStore }))
   .listen(3000);
 
+// Fail-safe and idempotent. A rejecting `pgPool.end()` must not skip the exit,
+// and a second signal must not call `end()` on an already-closed pool.
+let shuttingDown = false;
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
-  process.on(signal, async () => {
-    await pgPool.end();
-    await app.stop();
-    process.exit(0);
+  process.on(signal, () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+
+    void (async () => {
+      try {
+        await pgPool.end();
+        await app.stop();
+      } catch (error) {
+        console.error("shutdown failed", error);
+        process.exitCode = 1;
+      } finally {
+        process.exit();
+      }
+    })();
   });
 }
 
