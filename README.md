@@ -10,7 +10,6 @@ PoC generative AI pipeline to structure and interact with contract documents.
 - [Install](#install)
 - [Usage](#usage)
 - [Architecture Decisions](#architecture-decisions)
-- [Contributing](#contributing)
 - [License](#license)
 
 ## Background
