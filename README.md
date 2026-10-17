@@ -31,12 +31,30 @@ bun install
 ## Usage
 
 ```sh
-bun run dev:setup  # Inngest dev server, UI at http://localhost:8288
-bun run dev        # Elysia API on http://localhost:3000
+mise run dev:setup     # start the stack; prints the Inngest UI URL
+mise run dev           # Elysia API on an auto-selected port, printed at startup
+mise run dev:send      # send the demo event
+mise run dev:teardown  # stop the stack
 ```
 
+Nothing binds a fixed port: Podman assigns the Inngest dev server's
+ports and the app asks the OS for one, so every workspace gets its own
+and several can run at the same time. The dev tasks read the stack's
+addresses straight from Podman and pass them to the app process, so no
+ports are written down anywhere. End-to-end checks read the app's port
+from its startup output (`Elysia listening on http://...:<port>`) to
+build their curl commands.
+
+Once the app is up, the `dev` task reads its port from the startup
+output and registers the functions with the Inngest dev server over
+the documented `PUT` sync (SDK spec 4.3.1), pointing Inngest at
+`host.containers.internal:<port>` (the URL the Inngest container
+calls back at). To re-register on demand (for example after the dev
+server is recreated), send the same request:
+
 ```sh
-bun run src/send.ts
+curl -X PUT http://host.containers.internal:<port>/api/inngest \
+  --resolve host.containers.internal:<port>:127.0.0.1
 ```
 
 - `GET /` returns `{ ok: true }`.
