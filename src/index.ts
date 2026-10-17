@@ -18,4 +18,6 @@ const app = new Elysia()
   )
   .listen(0);
 
-console.log(`Elysia listening on http://${app.server?.hostname}:${app.server?.port}`);
+console.log(
+  `Elysia listening on http://${app.server?.hostname}:${app.server?.port}`,
+);

@@ -17,7 +17,7 @@
 - **Do not add a frontend build step, bundler config, or framework.** The component bundle is served as-is.
 - **Keep `GET /` returning `{ ok: true }`.** ADR-0002's confirmation check depends on it. The chat page lives at `/chat`.
 - **Serving the component bundle means serving one file out of `node_modules`** — `node_modules/deep-chat/dist/deepChat.bundle.js` — by pointing `@elysiajs/static` at `node_modules/deep-chat/dist` under the `/deep-chat` prefix. This is not a build step and not a copy: there is no `dist/`, no bundler, and nothing compiled. `deep-chat` ships a pre-built browser bundle, and `staticPlugin` just serves files off disk. The alternative (copying it into `public/`) would duplicate a vendor artifact into the repo and need re-copying on every version bump, so serving it in place is both smaller and less to maintain.
-- **`/chat` is served by a `GET /chat` route returning `Bun.file("public/index.html")`.** `public/` is *not* mounted as a static root; `staticPlugin` serves only the component bundle.
+- **`/chat` is served by a `GET /chat` route returning `Bun.file("public/index.html")`.** `public/` is _not_ mounted as a static root; `staticPlugin` serves only the component bundle.
 - **Ollama must allow the browser's origin.** The page is served from `http://localhost:3000` and the component posts to `http://localhost:11434`, which is cross-origin, so Ollama's CORS has to permit it. Verified against the running Ollama 0.12.9 on this machine: the preflight returns `Access-Control-Allow-Origin: http://localhost:3000`. If a developer hits a CORS error, the fix is `OLLAMA_ORIGINS` on the Ollama side, not a proxy here.
 - **Logging as a side effect is allowed**; keep it to `console.log` like the rest of the repo.
 - **Style matches the repo:** double quotes, 2-space indent, `export const`, mostly functional, no classes.
@@ -49,9 +49,11 @@ This change adds **no new source modules and no tests**. There is no logic to te
 ### Task 1: ADR for the chat page and direct Ollama connection
 
 **Files:**
+
 - Create: `docs/decisions/0005-chat-ui-without-frontend-build.md`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: nothing consumed by code. Documents why the page is static HTML with no build step, and why the browser calls Ollama directly rather than through a server route.
 
@@ -74,6 +76,7 @@ Title `# Chat UI served without a frontend build step`.
 Context (2-3 sentences): the chat UI needs a component library; `deep-chat` is a web component that runs from one pre-built script, and the repo has no frontend build tooling, so the Svelte options would each add a toolchain to answer a problem we do not have. The component also ships a built-in Ollama client, so the first version needs no server-side LLM route.
 
 Considered Options: exactly these four, one line each:
+
 - SvelteKit hosting Elysia via a `+server.ts` fallback
 - Vite + Svelte, served by Elysia
 - Static HTML plus a server-side `/talk` proxy to Ollama
@@ -102,10 +105,12 @@ git commit -m "docs: ADR for the chat page and direct Ollama connection"
 ### Task 2: Add the static routes and serve the chat page
 
 **Files:**
+
 - Modify: `src/index.ts`
 - Create: `public/index.html`
 
 **Interfaces:**
+
 - Consumes: nothing from Task 1.
 - Produces: `GET /` → `{ok: true}` (unchanged), `GET /chat` → the chat page, `GET /deep-chat/deepChat.bundle.js` → the component bundle, `ALL /api/inngest` → unchanged. No other routes are added.
 
@@ -137,7 +142,9 @@ const app = new Elysia()
   )
   .listen(3000);
 
-console.log(`Elysia listening on http://${app.server?.hostname}:${app.server?.port}`);
+console.log(
+  `Elysia listening on http://${app.server?.hostname}:${app.server?.port}`,
+);
 ```
 
 Notes: the import list is alphabetical, matching the existing file's style. `staticPlugin` is `await`ed per the plugin's docs. `prefix: "/deep-chat"` serves the bundle straight out of `node_modules/deep-chat/dist` — nothing is copied or built. `Bun.file` returns `200` with `content-type: text/html;charset=utf-8`.
@@ -183,7 +190,9 @@ Notes: the import list is alphabetical, matching the existing file's style. `sta
           stream: true,
         },
       };
-      chat.introMessage = { text: "Ask me anything. I am running locally on Ollama." };
+      chat.introMessage = {
+        text: "Ask me anything. I am running locally on Ollama.",
+      };
     </script>
   </body>
 </html>
@@ -191,7 +200,7 @@ Notes: the import list is alphabetical, matching the existing file's style. `sta
 
 Notes that matter:
 
-- The `height: 100%` rules are what make it a *full-page* chat; without them Deep Chat collapses to a short box.
+- The `height: 100%` rules are what make it a _full-page_ chat; without them Deep Chat collapses to a short box.
 - `maxMessages: -1` sends the whole transcript, so the model has the earlier turns. Deep Chat's Ollama client already defaults to `-1` (verified in the shipped bundle), but it is set explicitly here so the intent is legible rather than inherited.
 - The model is set explicitly because the component's own default is the bare tag `llama3.2`, while this box has `llama3.2:latest`. Ollama resolves both against the same model, but pinning the full tag means the page does not silently change behaviour if the developer also has a differently-tagged `llama3.2` around.
 - `stream: true` **is** set. The Ollama client defaults it to `false`, and `stream: false` makes Ollama answer with `Content-Type: application/json` and a single buffered object rather than NDJSON, so the reply would render all at once instead of token by token. Verified against the local Ollama 0.12.9: the body this page sends returns `application/x-ndjson` and arrives in chunks.
@@ -211,6 +220,7 @@ curl -s -i -X OPTIONS http://localhost:11434/api/chat \
 ```
 
 Expected, all four:
+
 - `{ ok: true }`
 - `chat page: 200 text/html;charset=utf-8`
 - `bundle: 200` and a JavaScript content type — the file is a few hundred KB, do not match on an exact size
@@ -234,6 +244,7 @@ git commit -m "feat: serve the Deep Chat page talking to Ollama"
 **Files:** none. This task only observes; it changes nothing and commits nothing.
 
 **Interfaces:**
+
 - Consumes: the routes from Task 2.
 - Produces: nothing. If verification fails, fix the cause as its own focused commit.
 
@@ -274,11 +285,13 @@ State plainly what was observed. If everything passed, say so and stop — there
 ### Task 4: Document the chat page
 
 **Files:**
+
 - Create: `.env.example`
 - Modify: `README.md`
 - Modify: `CHANGELOG.md`
 
 **Interfaces:**
+
 - Consumes: the routes from Task 2. No code.
 
 - [ ] **Step 1: Create `.env.example`**

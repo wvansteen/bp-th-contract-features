@@ -14,14 +14,14 @@ no `any`.
 
 ## Decision Drivers
 
-* The locks must be enforceable by an existing, supported tool.
-* The rule set must be extensible.
+- The locks must be enforceable by an existing, supported tool.
+- The rule set must be extensible.
 
 ## Considered Options
 
-* `eslint-plugin-functional` with Prettier
-* Biome
-* Oxlint
+- `eslint-plugin-functional` with Prettier
+- Biome
+- Oxlint
 
 ## Decision Outcome
 
@@ -31,9 +31,9 @@ be added.
 
 ### Consequences
 
-* Good, because the locks ship as supported rules and the set extends one line
+- Good, because the locks ship as supported rules and the set extends one line
   at a time.
-* Bad, because it is two tools where Biome is one binary, and slower.
+- Bad, because it is two tools where Biome is one binary, and slower.
 
 ### Confirmation
 

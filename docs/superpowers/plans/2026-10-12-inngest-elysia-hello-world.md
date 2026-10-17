@@ -34,9 +34,11 @@
 ### Task 1: ADR container harness Podman Compose
 
 **Files:**
+
 - Create: `docs/decisions/0001-container-harness-podman-compose.md`
 
 **Interfaces:**
+
 - Consumes: AGENTS.md ADR rules, brainstorming decision (full Podman, FOSS OCI simple, Rancher Desktop rejected for engine)
 - Produces: Accepted harness name `Podman + podman-compose`, canonical file `compose.yaml`, infra-only rule relied on by Task 5
 
@@ -59,9 +61,11 @@ git commit -m "docs: add ADR 0001 podman compose harness"
 ### Task 2: ADR web framework Elysia
 
 **Files:**
+
 - Create: `docs/decisions/0002-web-framework-elysia.md`
 
 **Interfaces:**
+
 - Consumes: Same template/rules
 - Produces: Accepted framework `Elysia on Bun`, relied on by Task 6 for `src/index.ts`
 
@@ -84,9 +88,11 @@ git commit -m "docs: add ADR 0002 elysia web framework"
 ### Task 3: ADR workflow engine Inngest
 
 **Files:**
+
 - Create: `docs/decisions/0003-workflow-engine-inngest.md`
 
 **Interfaces:**
+
 - Consumes: Same template/rules
 - Produces: Accepted engine `Inngest + inngest-js`, event `demo/hello.world`, relied on by Task 6
 
@@ -109,9 +115,11 @@ git commit -m "docs: add ADR 0003 inngest workflow engine"
 ### Task 4: ADR Bun version manager and bun scripts contract
 
 **Files:**
+
 - Create: `docs/decisions/0004-bun-version-and-scripts.md`
 
 **Interfaces:**
+
 - Consumes: Bun OOTB finding (`.bun-version` / `packageManager` convention only, no auto-switch like UV)
 - Produces: Pin files (`.tool-versions` + `packageManager` + `.bun-version` same exact version) and script names `bun run dev`, `bun run dev:setup` relied on by Task 5 and Task 6
 
@@ -134,6 +142,7 @@ git commit -m "docs: add ADR 0004 bun version and scripts"
 ### Task 5: Podman infra plus Bun project scaffold
 
 **Files:**
+
 - Create: `compose.yaml`
 - Create: `package.json`
 - Create: `.tool-versions`
@@ -142,6 +151,7 @@ git commit -m "docs: add ADR 0004 bun version and scripts"
 - Test: `podman compose config`
 
 **Interfaces:**
+
 - Consumes: Task 1 harness (`compose.yaml` canonical), Task 4 script contract + pin version
 - Produces: `http://localhost:8288` Inngest UI up via `bun run dev:setup`; `bun install` reproducible; consumed by Task 6 (`src/index.ts` expects Inngest at 8288)
 
@@ -175,6 +185,7 @@ git commit -m "feat: add podman inngest infra and bun scaffold"
 ### Task 6: Elysia plus Inngest hello world
 
 **Files:**
+
 - Create: `src/index.ts`
 - Create: `src/inngest.ts`
 - Create: `src/functions/hello.ts`
@@ -182,6 +193,7 @@ git commit -m "feat: add podman inngest infra and bun scaffold"
 - Test: manual `curl` + UI check (no test runner yet)
 
 **Interfaces:**
+
 - Consumes: Task 2 Elysia, Task 3 Inngest event `demo/hello.world`, Task 5 infra (`localhost:8288`, `localhost:3000`)
 - Produces: `GET /` health, `POST /api/inngest` serve handler, `bun run src/send.ts` publishes event, run visible in UI; consumed by Task 7 docs
 
@@ -219,10 +231,12 @@ git commit -m "feat: add elysia inngest hello world"
 ### Task 7: README and CHANGELOG for hello world
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `CHANGELOG.md`
 
 **Interfaces:**
+
 - Consumes: All prior tasks (final ports, scripts, ADRs)
 - Produces: Reproducible `Install`/`Usage` docs (deferred until now per AGENTS.md)
 

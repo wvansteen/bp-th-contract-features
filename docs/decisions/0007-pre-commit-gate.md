@@ -13,14 +13,14 @@ must therefore run the project's own checks and refuse a commit that fails one.
 
 ## Decision Drivers
 
-* The gate must reject rather than rewrite.
-* A build that passes must mean the types are sound.
+- The gate must reject rather than rewrite.
+- A build that passes must mean the types are sound.
 
 ## Considered Options
 
-* husky pre-commit running format, lint, typecheck and build
-* lint-staged on staged files
-* No hook
+- husky pre-commit running format, lint, typecheck and build
+- lint-staged on staged files
+- No hook
 
 ## Decision Outcome
 
@@ -30,9 +30,9 @@ and because a hook that rewrites the working tree is itself a mutation.
 
 ### Consequences
 
-* Good, because a commit cannot land unless format, lint, typecheck and build
+- Good, because a commit cannot land unless format, lint, typecheck and build
   all pass.
-* Bad, because every commit runs the whole project; there is no staged-file
+- Bad, because every commit runs the whole project; there is no staged-file
   fast path.
 
 ### Confirmation

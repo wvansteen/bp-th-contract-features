@@ -14,12 +14,12 @@ reads.
 
 ## Decision Drivers
 
-* Single source of truth for the Bun version; nothing to keep in sync.
+- Single source of truth for the Bun version; nothing to keep in sync.
 
 ## Considered Options
 
-* `packageManager` in `package.json`
-* Separate version files (`.tool-versions`, `.bun-version`)
+- `packageManager` in `package.json`
+- Separate version files (`.tool-versions`, `.bun-version`)
 
 ## Decision Outcome
 
@@ -28,8 +28,8 @@ one place the repo tooling reads.
 
 ### Consequences
 
-* Good, because one exact pin and nothing to keep in sync.
-* Bad, because tools with their own version files will not see it.
+- Good, because one exact pin and nothing to keep in sync.
+- Bad, because tools with their own version files will not see it.
 
 ### Confirmation
 

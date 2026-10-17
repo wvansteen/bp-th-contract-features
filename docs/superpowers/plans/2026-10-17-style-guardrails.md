@@ -22,7 +22,7 @@ TypeScript on Bun.
 ## Global Constraints
 
 - Every lock rule is `error`. Lint runs as `eslint . --max-warnings 0
-  --no-inline-config`. Warnings are not an enforcement mechanism.
+--no-inline-config`. Warnings are not an enforcement mechanism.
 - `proseWrap` is pinned to `"preserve"` and must not change.
 - Lock rules never relax. The framework relaxations section may hold
   non-lock rules only.
@@ -56,10 +56,12 @@ TypeScript on Bun.
 ### Task 1: Architecture Decision Records
 
 **Files:**
+
 - Create: `docs/decisions/0006-lint-and-format-toolchain.md`
 - Create: `docs/decisions/0007-pre-commit-gate.md`
 
 **Interfaces:**
+
 - Consumes: the decision content of the spec's "Why ESLint and Prettier",
   "The Locks", "Escapes Are Banned In-File" and "Enforcement Layers"
   sections.
@@ -131,10 +133,12 @@ The untracked design spec is committed here so it travels with the work.
 ### Task 2: TypeScript Foundation
 
 **Files:**
+
 - Create: `tsconfig.json`
 - Modify: `package.json` (devDependencies, `typecheck` script)
 
 **Interfaces:**
+
 - Produces: `bun run typecheck`, which runs `tsc --noEmit` and exits 0 on
   clean source. Tasks 3 and 4 rely on `tsconfig.json` existing for
   type-aware lint rules.
@@ -171,11 +175,13 @@ git commit -m "build: add strict tsconfig and typecheck script"
 ### Task 3: Prettier
 
 **Files:**
+
 - Create: `.prettierrc.json`
 - Create: `.prettierignore`
 - Modify: `package.json` (`format`, `format:check` scripts)
 
 **Interfaces:**
+
 - Produces: `bun run format` and `bun run format:check`, covering code,
   config and Markdown. Task 5 wires `format:check` into the hook.
 
@@ -221,12 +227,14 @@ git commit -m "build: add prettier scoped to code, config and markdown"
 ### Task 4: ESLint Locks
 
 **Files:**
+
 - Create: `eslint.config.ts`
 - Modify: `package.json` (devDependencies, `lint` script)
 - Modify: `src/inngest.ts`, `src/functions/hello.ts`, and any other `src/`
   file the locks flag
 
 **Interfaces:**
+
 - Consumes: `tsconfig.json` from Task 2, for type-aware rules.
 - Produces: `bun run lint`, which exits non-zero on any lock violation.
 
@@ -262,7 +270,7 @@ locks section. Every rule below is `"error"`:
   `@typescript-eslint/no-unsafe-function-type`
 - no route around a type error:
   `@typescript-eslint/ban-ts-comment` with `["error", { "ts-ignore": true,
-  "ts-expect-error": true }]`, `@typescript-eslint/no-non-null-assertion`,
+"ts-expect-error": true }]`, `@typescript-eslint/no-non-null-assertion`,
   `@typescript-eslint/no-unsafe-type-assertion`
 - `no-console`: `"off"`
 
@@ -290,7 +298,7 @@ open. Delete the probe file.
 Write `src/tmp-cast-probe.ts`:
 
 ```ts
-export const sneaky = (1 as unknown) as string;
+export const sneaky = 1 as unknown as string;
 ```
 
 Run: `bun run lint`
@@ -328,10 +336,12 @@ git commit -m "build: enforce functional style locks with eslint"
 ### Task 5: Pre-commit Gate
 
 **Files:**
+
 - Create: `.husky/pre-commit`
 - Modify: `package.json` (`build`, `prepare` scripts)
 
 **Interfaces:**
+
 - Consumes: `format:check` (Task 3), `lint` (Task 4), `typecheck` (Task 2).
 - Produces: commits rejected when any of the four checks fails.
 
@@ -387,11 +397,13 @@ git commit -m "build: reject commits failing format, lint, typecheck or build"
 ### Task 6: Guidelines and Prompting
 
 **Files:**
+
 - Create: `docs/guidelines/functional-typescript.md`
 - Modify: `AGENTS.md` (new `## Style` section)
 - Modify: `README.md` (new `## Development` section and ToC entry)
 
 **Interfaces:**
+
 - Consumes: the lock list from the spec.
 - Produces: the prompting layer that covers what lint cannot express.
 

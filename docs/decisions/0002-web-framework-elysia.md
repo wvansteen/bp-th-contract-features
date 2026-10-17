@@ -13,15 +13,15 @@ hosts it?
 
 ## Decision Drivers
 
-* FOSS only.
-* Typed routes for webhooks and JSON API.
-* Runs on Bun.
+- FOSS only.
+- Typed routes for webhooks and JSON API.
+- Runs on Bun.
 
 ## Considered Options
 
-* Elysia on Bun
-* Hono
-* SvelteKit API routes
+- Elysia on Bun
+- Hono
+- SvelteKit API routes
 
 ## Decision Outcome
 
@@ -30,8 +30,8 @@ webhook layer; Bun lock-in is accepted.
 
 ### Consequences
 
-* Good, because typed routes simplify the serve endpoint and JSON API.
-* Bad, because the API cannot run on plain Node.js.
+- Good, because typed routes simplify the serve endpoint and JSON API.
+- Bad, because the API cannot run on plain Node.js.
 
 ### Confirmation
 

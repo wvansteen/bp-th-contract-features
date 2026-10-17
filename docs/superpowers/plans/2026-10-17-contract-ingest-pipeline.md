@@ -59,6 +59,7 @@ No layer is assumed to be sufficient alone. This is why the upsert stays even th
 ### Task 1: Project setup — Postgres, Drizzle, env loading, typecheck
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `compose.yaml`
 - Modify: `.env.example`
@@ -70,6 +71,7 @@ No layer is assumed to be sufficient alone. This is why the upsert stays even th
 - Create: `src/db/client.ts`
 
 **Interfaces:**
+
 - Consumes: nothing
 - Produces:
   - `loadEnv(): Env` where `Env = { boxAppToken: string; boxFolderId: string; databaseUrl: string }`
@@ -82,14 +84,14 @@ No layer is assumed to be sufficient alone. This is why the upsert stays even th
 Add a `postgres` service alongside the existing Inngest dev service:
 
 ```yaml
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: bp
-      POSTGRES_PASSWORD: bp
-      POSTGRES_DB: contracts
-    ports:
-      - "5432:5432"
+postgres:
+  image: postgres:16-alpine
+  environment:
+    POSTGRES_USER: bp
+    POSTGRES_PASSWORD: bp
+    POSTGRES_DB: contracts
+  ports:
+    - "5432:5432"
 ```
 
 - [ ] **Step 2: Add dependencies**
@@ -309,10 +311,12 @@ Note: `.env` is gitignored, so it is never staged.
 ### Task 2: Box client over the official SDK
 
 **Files:**
+
 - Create: `src/box/client.ts`
 - Create: `src/box/document-shape.ts`
 
 **Interfaces:**
+
 - Consumes: `BOX_APP_TOKEN` (injected as `token`)
 - Produces:
   - `BoxFileEntry = { id: string; type: string; name: string }`
@@ -347,7 +351,11 @@ export type BoxFileEntry = { id: string; type: string; name: string };
 export type BoxPage = { entries: BoxFileEntry[]; totalCount: number };
 
 export interface BoxClientPort {
-  listFiles(args: { folderId: string; offset: number; limit: number }): Promise<BoxPage>;
+  listFiles(args: {
+    folderId: string;
+    offset: number;
+    limit: number;
+  }): Promise<BoxPage>;
   describeFile(args: { fileId: string }): Promise<Record<string, unknown>>;
 }
 ```
@@ -363,7 +371,11 @@ export type BoxFileEntry = { id: string; type: string; name: string };
 export type BoxPage = { entries: BoxFileEntry[]; totalCount: number };
 
 export interface BoxClientPort {
-  listFiles(args: { folderId: string; offset: number; limit: number }): Promise<BoxPage>;
+  listFiles(args: {
+    folderId: string;
+    offset: number;
+    limit: number;
+  }): Promise<BoxPage>;
   describeFile(args: { fileId: string }): Promise<Record<string, unknown>>;
 }
 
@@ -417,6 +429,7 @@ git commit -m "feat: add Box client over the official SDK"
 ### Task 3: Inngest functions — list-files and process-file
 
 **Files:**
+
 - Create: `src/db/document-store.ts`
 - Create: `src/functions/list-files.ts`
 - Create: `src/functions/list-files.test.ts`
@@ -428,6 +441,7 @@ git commit -m "feat: add Box client over the official SDK"
 - Delete: `src/send.ts`
 
 **Interfaces:**
+
 - Consumes:
   - `BoxClientPort` (Task 2)
   - `createDbClient` (Task 1)
@@ -450,13 +464,17 @@ import { listFilesHandler, type ListFilesSteps } from "./list-files";
 
 type SentEvent = { id: string; name: string; data: { fileId: string } };
 
-function fakeBox(pages: BoxPage[]): BoxClientPort & { calls: Array<{ offset: number; limit: number }> } {
+function fakeBox(
+  pages: BoxPage[],
+): BoxClientPort & { calls: Array<{ offset: number; limit: number }> } {
   const calls: Array<{ offset: number; limit: number }> = [];
   return {
     calls,
     async listFiles({ offset, limit }) {
       calls.push({ offset, limit });
-      return pages[Math.floor(offset / limit)] ?? { entries: [], totalCount: 0 };
+      return (
+        pages[Math.floor(offset / limit)] ?? { entries: [], totalCount: 0 }
+      );
     },
     async describeFile() {
       throw new Error("not used");
@@ -464,7 +482,11 @@ function fakeBox(pages: BoxPage[]): BoxClientPort & { calls: Array<{ offset: num
   };
 }
 
-function fakeSteps(): { steps: ListFilesSteps; sent: SentEvent[]; stepIds: string[] } {
+function fakeSteps(): {
+  steps: ListFilesSteps;
+  sent: SentEvent[];
+  stepIds: string[];
+} {
   const sent: SentEvent[] = [];
   const stepIds: string[] = [];
   const steps: ListFilesSteps = {
@@ -504,7 +526,9 @@ describe("list-files", () => {
   });
 
   it("gives every event a stable id so redelivery cannot start a second run", async () => {
-    const box = fakeBox([{ entries: [{ id: "7", type: "file", name: "a.pdf" }], totalCount: 1 }]);
+    const box = fakeBox([
+      { entries: [{ id: "7", type: "file", name: "a.pdf" }], totalCount: 1 },
+    ]);
     const { steps, sent } = fakeSteps();
 
     await listFilesHandler(box, steps, folder);
@@ -542,7 +566,10 @@ describe("list-files", () => {
   it("stops correctly when totalCount is not a multiple of page size", async () => {
     const box = fakeBox([
       {
-        entries: [{ id: "1", type: "file", name: "a.pdf" }, { id: "2", type: "file", name: "b.pdf" }],
+        entries: [
+          { id: "1", type: "file", name: "a.pdf" },
+          { id: "2", type: "file", name: "b.pdf" },
+        ],
         totalCount: 101,
       },
       { entries: [{ id: "3", type: "file", name: "c.pdf" }], totalCount: 101 },
@@ -597,7 +624,8 @@ describe("list-files replay safety", () => {
     const box: BoxClientPort = {
       async listFiles({ offset }) {
         calls.push(offset);
-        const ids = offset === 0 ? ["1", "2"] : offset === 100 ? ["3", "4"] : ["5"];
+        const ids =
+          offset === 0 ? ["1", "2"] : offset === 100 ? ["3", "4"] : ["5"];
         return {
           entries: ids.map((id) => ({ id, type: "file", name: `${id}.pdf` })),
           totalCount: 201,
@@ -635,7 +663,13 @@ describe("list-files replay safety", () => {
       },
     };
 
-    return { steps, sentAll, failOnceOn: (id: string) => { failOn = id; } };
+    return {
+      steps,
+      sentAll,
+      failOnceOn: (id: string) => {
+        failOn = id;
+      },
+    };
   }
 
   it("rebuilds loop state from memoized steps after a mid-loop failure", async () => {
@@ -656,7 +690,13 @@ describe("list-files replay safety", () => {
     expect(calls).toEqual([0, 100, 200]);
 
     // And each page's fan-out was sent exactly once.
-    expect(steps.sentAll.map((e) => e.data.fileId)).toEqual(["1", "2", "3", "4", "5"]);
+    expect(steps.sentAll.map((e) => e.data.fileId)).toEqual([
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+    ]);
   });
 });
 ```
@@ -731,9 +771,9 @@ export async function listFilesHandler(
 
 #### Why a local variable is enough
 
-Inngest does not preserve the function body between steps. Per its docs: *"When
+Inngest does not preserve the function body between steps. Per its docs: _"When
 it resumes, the handler runs again from the top: completed steps return their
-saved result, but code outside a step runs again."* So `offset` and `processed`
+saved result, but code outside a step runs again."_ So `offset` and `processed`
 genuinely reset to `0` on every resume.
 
 The loop still works because the value is **recomputed, not persisted**. On
@@ -744,7 +784,7 @@ re-entry the handler re-walks the memoized prefix:
 3. `step.sendEvent("emit-0")` returns its saved result immediately
 4. `processed = 2`, `offset = 100` — same values as before, derived from the
    saved page result
-5. `step.run("page-100")` is not yet saved, so *this* is where the run pauses
+5. `step.run("page-100")` is not yet saved, so _this_ is where the run pauses
 
 Inngest's own pagination example uses exactly this shape: a local cursor in a
 `do/while`, advanced by a cursor returned from each step.
@@ -833,8 +873,12 @@ describe("process-file", () => {
     };
 
     const { steps } = fakeSteps();
-    await processFileHandler(fakeBox({ id: "9" }), steps, store, { fileId: "9" });
-    await processFileHandler(fakeBox({ id: "9" }), steps, store, { fileId: "9" });
+    await processFileHandler(fakeBox({ id: "9" }), steps, store, {
+      fileId: "9",
+    });
+    await processFileHandler(fakeBox({ id: "9" }), steps, store, {
+      fileId: "9",
+    });
 
     // The port exposes no insert path at all. Conflict handling is the
     // adapter's job, which is what makes redelivery safe.
@@ -851,7 +895,9 @@ describe("process-file", () => {
       },
     };
 
-    await processFileHandler(fakeBox({ id: "5" }), steps, store, { fileId: "5" });
+    await processFileHandler(fakeBox({ id: "5" }), steps, store, {
+      fileId: "5",
+    });
 
     expect(stepIds).toEqual(["describe-file", "upsert"]);
   });
@@ -1005,7 +1051,10 @@ Modify `src/inngest.ts`:
 import { Inngest } from "inngest";
 import { boxClient, boxFolderId, documentStore } from "./deps";
 import { listFilesHandler, type ListFilesSteps } from "./functions/list-files";
-import { processFileHandler, type ProcessFileSteps } from "./functions/process-file";
+import {
+  processFileHandler,
+  type ProcessFileSteps,
+} from "./functions/process-file";
 
 export const inngest = new Inngest({ id: "contract-features" });
 
@@ -1077,11 +1126,13 @@ git commit -m "feat: add Inngest functions for listing and processing files"
 ### Task 4: Elysia routes
 
 **Files:**
+
 - Create: `src/routes/contracts.ts`
 - Create: `src/routes/contracts.test.ts`
 - Modify: `src/index.ts`
 
 **Interfaces:**
+
 - Consumes: `inngest`, `documentStore` (Task 3)
 - Produces: `createContractsRoutes(deps) => Elysia`
 
@@ -1095,7 +1146,9 @@ import type { InngestEventSender } from "../deps";
 import type { DocumentStore } from "../db/document-store";
 import { createContractsRoutes } from "./contracts";
 
-function fakeInngest(): InngestEventSender & { events: Array<{ name: string; data: unknown }> } {
+function fakeInngest(): InngestEventSender & {
+  events: Array<{ name: string; data: unknown }>;
+} {
   const events: Array<{ name: string; data: unknown }> = [];
   return {
     events,
@@ -1105,7 +1158,9 @@ function fakeInngest(): InngestEventSender & { events: Array<{ name: string; dat
   };
 }
 
-function fakeStore(docs: Array<{ documentId: string; metadata: Record<string, unknown> }>): DocumentStore {
+function fakeStore(
+  docs: Array<{ documentId: string; metadata: Record<string, unknown> }>,
+): DocumentStore {
   return {
     async upsert() {},
     async listAll() {
@@ -1136,20 +1191,29 @@ describe("POST /process-contracts", () => {
   });
 
   it("returns 422 when maxDocuments is missing", async () => {
-    const app = createContractsRoutes({ inngest: fakeInngest(), store: fakeStore([]) });
+    const app = createContractsRoutes({
+      inngest: fakeInngest(),
+      store: fakeStore([]),
+    });
     const response = await app.handle(post({}));
     expect(response.status).toBe(422);
   });
 
   it("returns 422 when maxDocuments is not a positive integer", async () => {
-    const app = createContractsRoutes({ inngest: fakeInngest(), store: fakeStore([]) });
+    const app = createContractsRoutes({
+      inngest: fakeInngest(),
+      store: fakeStore([]),
+    });
     expect((await app.handle(post({ maxDocuments: 0 }))).status).toBe(422);
     expect((await app.handle(post({ maxDocuments: -1 }))).status).toBe(422);
     expect((await app.handle(post({ maxDocuments: 1.5 }))).status).toBe(422);
   });
 
   it("returns 422 when maxDocuments exceeds the run step budget", async () => {
-    const app = createContractsRoutes({ inngest: fakeInngest(), store: fakeStore([]) });
+    const app = createContractsRoutes({
+      inngest: fakeInngest(),
+      store: fakeStore([]),
+    });
     expect((await app.handle(post({ maxDocuments: 1001 }))).status).toBe(422);
   });
 });
@@ -1164,7 +1228,9 @@ describe("GET /contracts", () => {
       ]),
     });
 
-    const response = await app.handle(new Request("http://localhost/contracts"));
+    const response = await app.handle(
+      new Request("http://localhost/contracts"),
+    );
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -1253,7 +1319,9 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
-console.log(`Elysia listening on http://${app.server?.hostname}:${app.server?.port}`);
+console.log(
+  `Elysia listening on http://${app.server?.hostname}:${app.server?.port}`,
+);
 ```
 
 The pool is closed on shutdown, and `deps.ts` is imported rather than rebuilding clients.
@@ -1278,12 +1346,14 @@ git commit -m "feat: add contract routes"
 ### Task 5: Documentation and ADR
 
 **Files:**
+
 - Create: `docs/decisions/0005-box-api-authentication.md`
 - Modify: `README.md`
 - Modify: `CHANGELOG.md`
 - Modify: `AGENTS.md`
 
 **Interfaces:**
+
 - Consumes: everything from Tasks 1-4
 - Produces: shipped feature with complete docs
 
@@ -1315,9 +1385,9 @@ across that boundary and must not require enterprise app configuration.
 
 ## Considered Options
 
-* Developer token
-* JWT (server authentication) with a signed assertion
-* Client Credentials Grant
+- Developer token
+- JWT (server authentication) with a signed assertion
+- Client Credentials Grant
 
 ## Decision Outcome
 
@@ -1327,11 +1397,11 @@ folder.
 
 ### Consequences
 
-* Good, because local setup is a single pasted token.
-* Good, because it works across personal and shared enterprise folders.
-* Bad, because the token expires every 60 minutes and must be regenerated by
+- Good, because local setup is a single pasted token.
+- Good, because it works across personal and shared enterprise folders.
+- Bad, because the token expires every 60 minutes and must be regenerated by
   hand between local runs.
-* Bad, because it cannot be used in production as-is.
+- Bad, because it cannot be used in production as-is.
 
 ### Confirmation
 
@@ -1356,17 +1426,19 @@ Contents that disagrees with the body.
 
 Replace the `## Install` section body with:
 
-```markdown
+````markdown
 - [Podman](https://podman.io/) for the Inngest dev server.
 - [Bun](https://bun.sh/) `1.2.23` (pinned in `package.json`).
 
 ```sh
 bun install
 ```
+````
 
 Copy `.env.example` to `.env` and fill in `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and
 `DATABASE_URL`.
-```
+
+`````
 
 Replace the `## Usage` section body with:
 
@@ -1375,7 +1447,7 @@ Replace the `## Usage` section body with:
 bun run dev:setup  # Inngest dev + Postgres; Inngest UI at http://localhost:8288
 bun run dev        # Elysia API on http://localhost:3000
 bun run db:migrate # apply the initial migration
-```
+`````
 
 Trigger an ingest run:
 
@@ -1392,6 +1464,7 @@ curl http://localhost:3000/contracts
 ```
 
 `GET /` returns `{ ok: true }`.
+
 ````
 
 The `bun run src/send.ts` line is removed along with `src/send.ts` in Task 3.
@@ -1494,3 +1567,4 @@ the `type` value Box actually returns.
 git add -A
 git commit -m "fix: address end-to-end verification findings"
 ```
+````

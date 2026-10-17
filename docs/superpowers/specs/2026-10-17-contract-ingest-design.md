@@ -114,6 +114,7 @@ hardcodes it.
 ### Database
 
 Table `documents`:
+
 - `document_id` (text, primary key)
 - `metadata` (jsonb, not null)
 

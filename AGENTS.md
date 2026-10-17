@@ -43,7 +43,7 @@ alongside the code that depends on it.
   `docs/decisions/NNNN-short-title.md` using the next free number.
 - Fill it in and set its `status` (`proposed`, `accepted`, `rejected`, …).
 - To change a past decision, keep the old ADR and mark it `superseded by
-  ADR-NNNN`; never delete history. Supersede chains are for merged
+ADR-NNNN`; never delete history. Supersede chains are for merged
   decisions only. While the branch is unmerged, fix the ADR in place.
 - Keep ADRs lean: two to three sentences of context, only in-scope drivers and
   options, the outcome with a one-line why, terse consequences, and a

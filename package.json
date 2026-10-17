@@ -4,6 +4,9 @@
   "packageManager": "bun@1.2.23",
   "scripts": {
     "dev": "bun --hot src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@elysiajs/static": "^1.4.10",
@@ -13,6 +16,7 @@
   },
   "devDependencies": {
     "@types/bun": "~1.2.23",
+    "prettier": "^3.9.10",
     "typescript": "~6.0.3"
   }
 }

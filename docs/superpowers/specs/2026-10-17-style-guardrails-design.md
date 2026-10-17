@@ -40,20 +40,20 @@ Every rule is `error` severity, and lint runs with `--max-warnings 0`. A
 warning does not fail a tool call, so warnings are not an enforcement
 mechanism here.
 
-| Lock | Rule | Notes |
-| --- | --- | --- |
-| only `const` | `functional/no-let` | bans `let` outright |
-| | `no-var` | |
-| | `prefer-const` | fixer only; aids conversion |
-| no assignments | `functional/immutable-data` | property writes, `delete`, `push`/`sort`/`splice`, `Object.assign`, `Map.set`, `Set.add`. Type-aware. |
-| | `no-param-reassign` with `props: true` | parameters are constants |
-| | `no-plusplus` | `i++` is mutation |
-| never mutate a `const` | `functional/immutable-data` | same rule. `ignoreImmediateMutation` keeps its default, so `[...xs].sort()` is allowed while `const o = {}; o.x = 1` is not |
-| no loops | `functional/no-loop-statements` | bans `for`, `for..of`, `for..in`, `while`, `do` |
-| no `break`/`continue`/`goto` | *satisfied by the above* | no loops leaves only `switch`/`break`, which is idiomatic and stays allowed. `goto` does not exist in JS |
-| no `any` | `@typescript-eslint/no-explicit-any` | the literal token |
-| | `@typescript-eslint/no-unsafe-{argument,assignment,call,member-access,return}` | `any` leaking in from `JSON.parse`, `res.json()`, or an untyped dependency: the leak `no-explicit-any` cannot see |
-| | `@typescript-eslint/no-unsafe-function-type` | the `Function` type |
+| Lock                         | Rule                                                                           | Notes                                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| only `const`                 | `functional/no-let`                                                            | bans `let` outright                                                                                                         |
+|                              | `no-var`                                                                       |                                                                                                                             |
+|                              | `prefer-const`                                                                 | fixer only; aids conversion                                                                                                 |
+| no assignments               | `functional/immutable-data`                                                    | property writes, `delete`, `push`/`sort`/`splice`, `Object.assign`, `Map.set`, `Set.add`. Type-aware.                       |
+|                              | `no-param-reassign` with `props: true`                                         | parameters are constants                                                                                                    |
+|                              | `no-plusplus`                                                                  | `i++` is mutation                                                                                                           |
+| never mutate a `const`       | `functional/immutable-data`                                                    | same rule. `ignoreImmediateMutation` keeps its default, so `[...xs].sort()` is allowed while `const o = {}; o.x = 1` is not |
+| no loops                     | `functional/no-loop-statements`                                                | bans `for`, `for..of`, `for..in`, `while`, `do`                                                                             |
+| no `break`/`continue`/`goto` | _satisfied by the above_                                                       | no loops leaves only `switch`/`break`, which is idiomatic and stays allowed. `goto` does not exist in JS                    |
+| no `any`                     | `@typescript-eslint/no-explicit-any`                                           | the literal token                                                                                                           |
+|                              | `@typescript-eslint/no-unsafe-{argument,assignment,call,member-access,return}` | `any` leaking in from `JSON.parse`, `res.json()`, or an untyped dependency: the leak `no-explicit-any` cannot see           |
+|                              | `@typescript-eslint/no-unsafe-function-type`                                   | the `Function` type                                                                                                         |
 
 `functional/no-expression-statements`, `functional/no-return-void`,
 `functional/no-classes`, `functional/no-this-expressions`,
@@ -67,11 +67,11 @@ and Elysia and Inngest handlers are legitimately imperative at the edges.
 through `@ts-expect-error`, `as unknown as T`, and non-null `!`. All of it
 closes:
 
-| Rule | Setting |
-| --- | --- |
-| `@typescript-eslint/ban-ts-comment` | `ts-ignore: true`, `ts-expect-error: true` |
-| `@typescript-eslint/no-non-null-assertion` | `error` |
-| `@typescript-eslint/no-unsafe-type-assertion` | `error` |
+| Rule                                          | Setting                                    |
+| --------------------------------------------- | ------------------------------------------ |
+| `@typescript-eslint/ban-ts-comment`           | `ts-ignore: true`, `ts-expect-error: true` |
+| `@typescript-eslint/no-non-null-assertion`    | `error`                                    |
+| `@typescript-eslint/no-unsafe-type-assertion` | `error`                                    |
 
 A value of unknown shape becomes a real type, not a cast. This is why
 `src/functions/hello.ts` needs an Inngest event schema typed on the client
@@ -114,13 +114,13 @@ is still alpha.
 
 ## Enforcement Layers
 
-| Layer | Command | Catches |
-| --- | --- | --- |
-| Format | `bun run format:check` | Prettier drift |
-| Lint | `bun run lint` | the locks above |
-| Typecheck | `bun run typecheck` (`tsc --noEmit`) | type errors |
-| Build | `bun run build` | bundling and module resolution |
-| Pre-commit | all four, in that order | anything above, before the commit exists |
+| Layer      | Command                              | Catches                                  |
+| ---------- | ------------------------------------ | ---------------------------------------- |
+| Format     | `bun run format:check`               | Prettier drift                           |
+| Lint       | `bun run lint`                       | the locks above                          |
+| Typecheck  | `bun run typecheck` (`tsc --noEmit`) | type errors                              |
+| Build      | `bun run build`                      | bundling and module resolution           |
+| Pre-commit | all four, in that order              | anything above, before the commit exists |
 
 `bun build` does **not** typecheck: Bun's transpiler erases types without
 verifying them. `typecheck` is its own step and cannot be folded into

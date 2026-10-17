@@ -13,16 +13,16 @@ one event from the API, observed in a local UI.
 
 ## Decision Drivers
 
-* FOSS only for local use.
-* Simplest setup for a small PoC.
-* Good local development and hobbyist support.
+- FOSS only for local use.
+- Simplest setup for a small PoC.
+- Good local development and hobbyist support.
 
 ## Considered Options
 
-* Inngest + inngest-js
-* ZIO
-* Temporal
-* No workflow/worker system
+- Inngest + inngest-js
+- ZIO
+- Temporal
+- No workflow/worker system
 
 ## Decision Outcome
 
@@ -31,8 +31,8 @@ up and already familiar.
 
 ### Consequences
 
-* Good, because the local dev server gives an observable UI for runs.
-* Bad, because the pipeline follows Inngest event and SDK conventions.
+- Good, because the local dev server gives an observable UI for runs.
+- Bad, because the pipeline follows Inngest event and SDK conventions.
 
 ### Confirmation
 
