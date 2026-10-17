@@ -29,9 +29,13 @@ documents and lets people interact with them.
 bun install
 ```
 
+Copy `.env.example` to `.env` and fill in `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and
+`DATABASE_URL`.
+
 ## Usage
 
 ```sh
+<<<<<<< HEAD
 mise run dev:setup     # start the stack; prints the Inngest UI URL
 mise run dev           # Elysia API on an auto-selected port, printed at startup
 mise run dev:send      # send the demo event
@@ -54,6 +58,20 @@ example after the dev server is recreated), send the same request:
 ```sh
 curl -X PUT http://host.containers.internal:<port>/api/inngest \
   --resolve host.containers.internal:<port>:127.0.0.1
+```
+
+Trigger an ingest run:
+
+```sh
+curl -X POST http://localhost:3000/process-contracts \
+  -H "Content-Type: application/json" \
+  -d '{"maxDocuments": 10}'
+```
+
+List stored document metadata:
+
+```sh
+curl http://localhost:3000/contracts
 ```
 
 - `GET /` returns `{ ok: true }`.

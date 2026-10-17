@@ -23,6 +23,12 @@ Intended, non-binding stack. None of this is decided until an ADR says so:
 Style: mostly functional, leaning on a managed effects system where it earns its
 keep. Logging as a side effect is an accepted exception for this PoC.
 
+- **Dependency injection over env access.** Never read env vars or construct
+  low-level clients inside a function. Build them at the composition root
+  (`src/deps.ts`) and inject them. Pass capabilities as parameters, not
+  globals. `drizzle.config.ts` is the one exception: it is a `drizzle-kit`
+  CLI file the running app never imports.
+
 ## Style
 
 The linter enforces these locks as errors:
