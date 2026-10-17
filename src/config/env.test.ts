@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { loadEnv } from "./env";
 
 const KEYS = ["BOX_APP_TOKEN", "BOX_FOLDER_ID", "DATABASE_URL"] as const;
+
+// Snapshotted once at module load. Bun runs every test file in one process and
+// shares `process.env` between them, so a restore that captures a value written
+// by an earlier test hands a later file a fake token instead of the ambient one.
 const saved: Record<string, string | undefined> = {};
+for (const key of KEYS) saved[key] = process.env[key];
 
 afterEach(() => {
   for (const key of KEYS) {
@@ -12,10 +17,7 @@ afterEach(() => {
 });
 
 function clearEnv() {
-  for (const key of KEYS) {
-    saved[key] = process.env[key];
-    delete process.env[key];
-  }
+  for (const key of KEYS) delete process.env[key];
 }
 
 describe("loadEnv", () => {
@@ -42,5 +44,9 @@ describe("loadEnv", () => {
 
       expect(() => loadEnv()).toThrow(key);
     }
+  });
+
+  it("restores the ambient environment for other test files", () => {
+    expect(process.env.BOX_APP_TOKEN).toBe(saved.BOX_APP_TOKEN);
   });
 });
