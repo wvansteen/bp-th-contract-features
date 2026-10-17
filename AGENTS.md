@@ -5,15 +5,15 @@ Guidance for agents working in this repository. Commit changes here so everyone
 
 ## Project
 
-`bp-th-contract-features` is a proof of concept that **builds and tests a small
+`bp-th-contract-features` is a proof of concept that builds and tests a small
 generative AI pipeline to structure and interact with content from contract
-documents**. The problem space is still being discovered, so we deliberately
+documents. The problem space is still being discovered, so we deliberately
 work one small step at a time rather than building everything at once.
 
-Current state: **documentation only**. There is no application code, package
+Current state: documentation only. There is no application code, package
 manifest, or build tooling yet.
 
-Intended, *non-binding* stack — none of this is decided until an ADR says so:
+Intended, non-binding stack. None of this is decided until an ADR says so:
 
 - Pipeline: Inngest
 - Web server: Elysia on Bun, TypeScript
@@ -29,29 +29,29 @@ Every piece of work follows the same loop. Do not skip steps.
 
 ### 1. Plan
 
-Restate the task in your own words and keep it small. Work on **one feature or
-decision at a time**; prefer the smallest change that answers the current
+Restate the task in your own words and keep it small. Work on one feature or
+decision at a time; prefer the smallest change that answers the current
 question. Do not scaffold many libraries or features in one go.
 
 ### 2. Decision (if needed)
 
 If the work chooses between meaningful alternatives (a library, a data model, a
-hosting approach, a repo layout, an API shape), record an ADR **before or
-alongside** the code that depends on it.
+hosting approach, a repo layout, an API shape), record an ADR before or
+alongside the code that depends on it.
 
 - Copy `docs/decisions/adr-template.md` to
   `docs/decisions/NNNN-short-title.md` using the next free number.
 - Fill it in and set its `status` (`proposed`, `accepted`, `rejected`, …).
 - To change a past decision, keep the old ADR and mark it `superseded by
   ADR-NNNN`; never delete history. Supersede chains are for merged
-  decisions only — while the branch is unmerged, fix the ADR in place.
-- Keep ADRs lean: 2–3 sentences of context, only in-scope drivers and
+  decisions only. While the branch is unmerged, fix the ADR in place.
+- Keep ADRs lean: two to three sentences of context, only in-scope drivers and
   options, the outcome with a one-line why, terse consequences, and a
   one-line confirmation as a file or command check. An ADR records the
-  decision, not the chain of reasoning behind it: no speculative
+  decision and leaves the chain of reasoning out: no speculative
   generality, no support matrices, no re-argued pros and cons.
 
-If no meaningful choice is being made, **skip this step** and move on.
+If no meaningful choice is being made, skip this step and move on.
 
 ### 3. Implement
 
@@ -83,14 +83,14 @@ so the workspace's containers and networks do not outlive it.
 Use these tools before reading files or running broad shell commands. They
 reduce token usage without reducing performance:
 
-- **osgrep** — local, offline semantic code search. Use it to find code by
+- osgrep: local, offline semantic code search. Use it to find code by
   meaning ("where is X validated?", "how does the pipeline connect?") instead
   of guessing file paths or grepping for exact strings. Prefer `osgrep_search`
   for conceptual queries, `osgrep_trace` for call graphs, and
   `osgrep_skeleton` for signatures without bodies. Falls back to `grep`/`glob`
   only when you know the exact string or file name.
 
-- **RTK** — automatically rewrites shell commands to their token-leaner
+- RTK: automatically rewrites shell commands to their token-leaner
   equivalents (ultra-compact output, skipped env validation, batched flags).
   It is active by default; it never lifts a deny, silences an ask, or changes
   what OpenCode's own permission rules decide. Do not override or disable it.
@@ -103,29 +103,29 @@ calls when exploring the codebase.
 Everything is out of scope by default. Solve the narrowest problem at
 hand: no CI support, no compatibility matrices, no speculative
 generality. If a task balloons into custom scope or extra tooling
-support, stop — the requirements or the task description were wrong, not
+support, stop. The requirements or the task description were wrong, not
 the scope. Narrow the task instead of widening the work.
 
 ## Where things live
 
-- `README.md` — follows [standard-readme](https://github.com/RichardLitt/standard-readme).
+- `README.md` follows [standard-readme](https://github.com/RichardLitt/standard-readme).
   Sections appear in the spec's order; the title carries the repo name; the
   short description is under 120 characters and must match the `package.json`
   and GitHub descriptions. `Install`/`Usage` are omitted until functional code
   exists.
-- `CHANGELOG.md` — follows
+- `CHANGELOG.md` follows
   [Keep a Changelog 1.0.0](https://keepachangelog.com/en/1.0.0/) and
   [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-- `docs/decisions/` — [MADR](https://adr.github.io/madr/) v4 ADRs.
-- `LICENSE` — MIT.
+- `docs/decisions/` holds [MADR](https://adr.github.io/madr/) v4 ADRs.
+- `LICENSE` is MIT.
 - The git remote is `origin`
-  (`git@github.com:wvansteen/bp-th-contract-features.git`). **Do not invent
-  URLs** (issues, changelog compare links); add them only when they exist.
+  (`git@github.com:wvansteen/bp-th-contract-features.git`). Do not invent
+  URLs (issues, changelog compare links); add them only when they exist.
 
 ## Verification
 
 Before claiming any work is complete, run the relevant command and read its
-output — evidence first, not confidence.
+output.
 
 - Docs changes: check that links resolve, README headings match the Table of
   Contents, and the changelog entry exists.
@@ -139,5 +139,5 @@ Integration is always branch and PR. Push the work to a feature branch on
 `main`.
 
 After the plan is implemented, handle each round of review feedback as
-its own commit and push it separately — one feedback round, one commit,
+its own commit and push it separately: one feedback round, one commit,
 one push. Never batch unrelated feedback rounds into a single commit.
