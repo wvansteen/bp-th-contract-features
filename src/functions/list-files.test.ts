@@ -195,9 +195,13 @@ describe("list-files replay safety", () => {
       "transient failure",
     );
 
+    // Second entry. `offset` and `processed` are back to 0.
     await listFilesHandler(box, steps.steps, params);
 
+    // Each page was fetched exactly once despite the restart, because replay
+    // walks the memoized prefix instead of re-running it.
     expect(calls).toEqual([0, 100, 200]);
+    // And each page's fan-out was sent exactly once.
     expect(steps.sentAll.map((e) => e.data.fileId)).toEqual(["1", "2", "3", "4", "5"]);
   });
 });
