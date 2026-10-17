@@ -28,7 +28,7 @@ Conditions a reasonable person would hit that nothing in the happy path covers, 
 
 1. **The browser cannot reach Ollama** (not running, or bound to a non-loopback interface, or CORS not permitted). Expect a visible error message in the chat area from the component's own error handling — this repo has no server code in the path and therefore nothing to fix server-side. Check the browser console and `curl -i -X OPTIONS http://localhost:11434/api/chat -H 'Origin: http://localhost:3000'` first.
 2. **The requested model is not pulled.** The component's Ollama client defaults to the bare tag `llama3.2`; this page pins `llama3.2:latest` instead. Expect Ollama's `model 'x' not found` text surfaced in the chat, not an empty reply.
-3. **The user's machine has Ollama on a different host or port.** The component's Ollama URL is configurable; expect changing one property to be enough, and expect that property to be obvious rather than buried.
+3. **The user's machine has Ollama on a different host or port.** The component hardcodes the endpoint at `localhost:11434`, so the page cannot be repointed. Expect a connection failure in the browser console, and expect the fix to be on the Ollama side — bind or forward it to `localhost:11434` — rather than a property in the page.
 4. **A reply contains markdown, quotes, or newlines.** Expect correct rendering — Deep Chat runs message text through remarkable with `{ breaks: true, linkTarget: "_blank" }` as its own defaults. Nothing to configure; do not add a `remarkable` property.
 5. **The page is served but the component never upgrades**, because the bundle failed to load. Expect `/deep-chat/deepChat.bundle.js` to be `200` with a JavaScript content type; if it `404`s the `staticPlugin` `assets` path is wrong.
 
@@ -81,7 +81,7 @@ Considered Options: exactly these four, one line each:
 
 Outcome: `Chosen option: "Static HTML plus directConnection to Ollama from the browser", because the component already speaks Ollama's API, so a proxy would be code that only re-encapsulates a library.` One line why.
 
-Consequences, terse: Good — no frontend toolchain and no proxy code; `bun run dev` stays the only command. Bad — the browser needs Ollama reachable and CORS-permitted, and a hosted model would need a proxy later; revisit when either bites.
+Consequences, terse: Good — no frontend toolchain and no proxy code; `bun run dev` stays the only command. Bad — the browser needs Ollama reachable and CORS-permitted, the endpoint is fixed at `localhost:11434` and not configurable from the page, and a hosted model would need a proxy later; revisit when one of these bites.
 
 Confirmation (one line, per the template's convention): `GET /chat` serves the chat page on `:3000` and a message in the browser streams a reply back from Ollama.
 
@@ -170,11 +170,17 @@ Notes: the import list is alphabetical, matching the existing file's style. `sta
       const chat = document.getElementById("chat");
       chat.directConnection = {
         ollama: {
-          // The browser posts to Ollama directly; no proxy is involved.
-          url: "http://localhost:11434/api/chat",
+          // The browser posts to Ollama directly; no proxy is involved. The
+          // endpoint itself is fixed in the component at
+          // http://localhost:11434/api/chat and cannot be set here — a url
+          // key would be merged into the request body and ignored.
           model: "llama3.2:latest",
           // Keep the whole conversation in the request body.
           maxMessages: -1,
+          // Set explicitly: the component defaults this to false, which makes
+          // Ollama return one buffered object instead of NDJSON, so replies
+          // would render all at once.
+          stream: true,
         },
       };
       chat.introMessage = { text: "Ask me anything. I am running locally on Ollama." };
@@ -188,9 +194,9 @@ Notes that matter:
 - The `height: 100%` rules are what make it a *full-page* chat; without them Deep Chat collapses to a short box.
 - `maxMessages: -1` sends the whole transcript, so the model has the earlier turns. Deep Chat's Ollama client already defaults to `-1` (verified in the shipped bundle), but it is set explicitly here so the intent is legible rather than inherited.
 - The model is set explicitly because the component's own default is the bare tag `llama3.2`, while this box has `llama3.2:latest`. Ollama resolves both against the same model, but pinning the full tag means the page does not silently change behaviour if the developer also has a differently-tagged `llama3.2` around.
-- `stream: true` is **not** set. The Ollama client defaults it to `false`, and with `stream: false` the component still renders progressively because it reads Ollama's chunked response as a `ReadableStream`. If replies turn out to arrive all at once in the browser, adding `stream: true` is the one-line fix — but do not add it speculatively.
+- `stream: true` **is** set. The Ollama client defaults it to `false`, and `stream: false` makes Ollama answer with `Content-Type: application/json` and a single buffered object rather than NDJSON, so the reply would render all at once instead of token by token. Verified against the local Ollama 0.12.9: the body this page sends returns `application/x-ndjson` and arrives in chunks.
 - Do **not** add a `remarkable` property. Deep Chat already renders message text through remarkable with `{ breaks: true, linkTarget: "_blank" }` as its own defaults; setting `html: true` would only let model output inject raw HTML.
-- If the developer's Ollama is elsewhere, `url` is the only line that changes.
+- Ollama on a different host or port cannot be reached from this page. The endpoint is fixed at `localhost:11434` inside the component, so the fix is on the Ollama side — bind or forward it to `localhost:11434` — not a line in this file.
 
 - [ ] **Step 4: Start the server and check every route**
 
@@ -305,7 +311,7 @@ Also add to the `Install` section, alongside the existing Podman and Bun bullets
 - [Ollama](https://ollama.com/) running locally with a model pulled
   (`ollama pull llama3.2`).
 
-The chat page's Ollama URL is set in `public/index.html`, not in the environment — say so in one sentence there, because a developer looking for an env var will not find one.
+Close with one sentence saying the chat page carries its Ollama settings in `public/index.html` and that nothing server-side reads Ollama environment variables, because a developer looking for an env var will not find one. Do not point at that file as a place to change the Ollama endpoint — it is not configurable from there.
 
 - [ ] **Step 3: Add the changelog bullet**
 
@@ -340,7 +346,7 @@ git commit -m "docs: describe the chat page and its Ollama requirement"
 - [ ] **Step 1: Confirm the branch is coherent**
 
 Run: `git log --oneline main..HEAD` and `git status --short`
-Expected: five focused commits against `main` — two plan commits plus one each from Tasks 1, 2, and 4 — and a clean working tree.
+Expected: a focused commit per step — the ADR, the routes and page, the docs, plus the plan corrections — and a clean working tree. Do not assert an exact count; later review rounds legitimately add commits.
 
 - [ ] **Step 2: Push**
 
