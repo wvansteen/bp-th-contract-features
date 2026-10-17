@@ -4,10 +4,12 @@
   "packageManager": "bun@1.2.23",
   "scripts": {
     "dev": "bun --hot src/index.ts",
+    "build": "bun build src/index.ts --target bun --outdir ./dist",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint . --max-warnings 0 --no-inline-config"
+    "lint": "eslint . --max-warnings 0 --no-inline-config",
+    "prepare": "husky"
   },
   "dependencies": {
     "@elysiajs/static": "^1.4.10",
@@ -21,6 +23,7 @@
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-functional": "^10.0.1",
+    "husky": "^9.1.7",
     "jiti": "^2.7.0",
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
