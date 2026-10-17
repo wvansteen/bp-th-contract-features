@@ -378,8 +378,8 @@ check that rejects it. Record which check rejected it. If the commit
 **succeeds**, `set -e` is missing from the hook and it ran through to `build`
 regardless; that is the failure this step exists to catch.
 
-Then restore `src/send.ts` with `git checkout -- src/send.ts` and confirm the
-hook runs all four checks to completion on clean code: Run:
+Then restore `src/send.ts` with `git checkout HEAD -- src/send.ts` and confirm
+the hook runs all four checks to completion on clean code: Run:
 `bun run format:check && bun run lint && bun run typecheck && bun run build`
 Expected: exit 0. If `build` passes while `typecheck` would fail, the two are
 not actually separate and the gate is weaker than intended.
