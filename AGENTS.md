@@ -10,8 +10,8 @@ generative AI pipeline to structure and interact with content from contract
 documents. The problem space is still being discovered, so we deliberately work
 one small step at a time rather than building everything at once.
 
-Current state: documentation only. There is no application code, package
-manifest, or build tooling yet.
+Current state: an early prototype. There is application code in `src/`, a
+`package.json`, and build tooling.
 
 Intended, non-binding stack. None of this is decided until an ADR says so:
 
@@ -22,6 +22,19 @@ Intended, non-binding stack. None of this is decided until an ADR says so:
 
 Style: mostly functional, leaning on a managed effects system where it earns its
 keep. Logging as a side effect is an accepted exception for this PoC.
+
+## Style
+
+The linter enforces these locks as errors:
+
+- No `let` or `var`; bind with `const`.
+- No assignment to variables, parameters, or object properties.
+- No `for`, `while`, or `do` loops.
+- No `any` anywhere, including type assertions and unsafe casts.
+- No `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, or non-null `!`.
+
+For everything the linter cannot check, see
+`docs/guidelines/functional-typescript.md`.
 
 ## Development loop
 

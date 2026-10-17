@@ -9,6 +9,7 @@ PoC generative AI pipeline to structure and interact with contract documents.
 - [Background](#background)
 - [Install](#install)
 - [Usage](#usage)
+- [Development](#development)
 - [Architecture Decisions](#architecture-decisions)
 - [License](#license)
 
@@ -63,6 +64,17 @@ curl -X PUT http://host.containers.internal:<port>/api/inngest \
 
 The chat page carries its Ollama settings in `public/index.html`; nothing
 server-side reads Ollama environment variables.
+
+## Development
+
+```sh
+bun run format:check  # Prettier, read-only
+bun run lint          # ESLint locks
+bun run typecheck     # tsc --noEmit
+bun run build         # bundle to dist/
+```
+
+The pre-commit hook runs all four and rejects the commit on failure.
 
 ## Architecture Decisions
 
