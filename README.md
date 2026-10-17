@@ -43,8 +43,8 @@ bun run src/send.ts
 - `GET /chat` serves a chat page that streams replies from a local
   [Ollama](https://ollama.com/) model.
 
-The chat page's Ollama URL is set in `public/index.html`, not in the
-environment.
+The chat page carries its Ollama settings in `public/index.html`;
+nothing server-side reads Ollama environment variables.
 
 ## Architecture Decisions
 

@@ -37,8 +37,9 @@ proxy would be code that only re-encapsulates a library.
 * Good, because no frontend toolchain and no proxy code;
   `bun run dev` stays the only command.
 * Bad, because the browser needs Ollama reachable and CORS-permitted,
-  and a hosted model would need a proxy later; revisit when either
-  bites.
+  the Ollama endpoint is fixed at `localhost:11434` and not
+  configurable from the page, and a hosted model would need a proxy
+  later; revisit when one of these bites.
 
 ### Confirmation
 

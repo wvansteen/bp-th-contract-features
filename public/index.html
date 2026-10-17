@@ -23,8 +23,11 @@
       const chat = document.getElementById("chat");
       chat.directConnection = {
         ollama: {
-          // The browser posts to Ollama directly; no proxy is involved.
-          url: "http://localhost:11434/api/chat",
+          // The browser posts to Ollama directly; no proxy is involved. The
+          // endpoint is built into the component
+          // (http://localhost:11434/api/chat) and is not configurable here,
+          // so do not add a url key: it would be merged into the request body
+          // and ignored.
           model: "llama3.2:latest",
           // Keep the whole conversation in the request body.
           maxMessages: -1,
