@@ -422,7 +422,8 @@ Expected shapes:
   → `Items`
 - `client.files.getFileById(fileId)` → `FileFull`
 - `Items.totalCount` — **camelCase**. The raw REST API's `total_count` is renamed by the SDK. Do not use `total_count`.
-- `Items.entries` is `readonly Item[]` where `Item = FileFull | FolderMini | WebLink`, so entries may be folders or web links. `id`, `type`, and `name` are declared optional on each member, and `entries` and `totalCount` are optional on `Items` itself.
+- `Items.entries` is `readonly Item[]` where `Item = FileFull | FolderMini | WebLink`, so entries may be folders or web links. Both `entries` and `totalCount` are optional on `Items` itself.
+- On each union member, `id` and `type` are **required** (declared on `FileBase`, `FolderBase`, and `WebLinkBase`), while `name` is **optional**. Verify this by probing rather than by grepping the whole file: `fileFull.d.ts` also contains nested interfaces such as `FileFullLockField` whose fields are optional, and a naive grep for `readonly id?:` matches those instead of the class.
 - Auth is `new BoxClient({ auth: new BoxDeveloperTokenAuth({ token }) })`.
 
 - [ ] **Step 2: Define the port and types**
@@ -481,17 +482,11 @@ export function createBoxClient({ token }: { token: string }): BoxClientPort {
       }
 
       return {
-        entries: (result.entries ?? []).map((entry) => {
-          // The SDK types `id` and `type` as optional on every member of the
-          // `FileFull | FolderMini | WebLink` union. An entry without them
-          // cannot be processed, so it is an error rather than a silent skip.
-          if (!entry.id || !entry.type) {
-            throw new Error(
-              `Box returned an entry without id or type in folder ${folderId} at offset ${offset}`,
-            );
-          }
-          return { id: entry.id, type: entry.type, name: entry.name ?? "" };
-        }),
+        entries: (result.entries ?? []).map((entry) => ({
+          id: entry.id,
+          type: entry.type,
+          name: entry.name ?? "",
+        })),
         totalCount: result.totalCount,
       };
     },
