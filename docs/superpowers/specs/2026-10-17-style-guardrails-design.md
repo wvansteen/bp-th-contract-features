@@ -89,15 +89,15 @@ accident.
 
 ## Locks Never Relax
 
-When a lock rule fires on framework-shaped code (for example
-`no-unsafe-argument` on `handler(request)` in `src/index.ts`, where the type
-comes from Inngest), the code changes or the work stops and escalates. The rule
-does not get downgraded.
+When a lock rule fires on framework-shaped code, the code changes or the work
+stops and escalates. The rule does not get downgraded.
 
 The "framework relaxations" section of `eslint.config.ts` may only ever hold
-non-lock rules. `@typescript-eslint/no-misused-promises` is the expected
-occupant. Lock rules can never acquire a per-file hole, because a lock with a
-hole is a default.
+non-lock rules. `@typescript-eslint/no-misused-promises` is its only occupant,
+and that relaxation is pre-emptive: it covers a promise-returning callback
+passed as an argument, a signature class that has not appeared in the current
+Elysia and Inngest code. Lock rules can never acquire a per-file hole, because a
+lock with a hole is a default.
 
 ## Why ESLint and Prettier
 
@@ -196,9 +196,9 @@ Decided by the requester after challenge.
 
 - There is no `tsconfig.json` today. `@types/bun` belongs in devDependencies;
   the code uses `Bun.file`.
-- The four existing source files will need to change to pass. That is expected
-  and in scope. `src/functions/hello.ts` specifically needs typed Inngest events
-  rather than a cast.
+- The locks did not fire on the original four source files. The Inngest event in
+  `src/inngest.ts` and `src/functions/hello.ts` was typed anyway, as the plan
+  intends, so `event.data` is a real type rather than a cast.
 - `no-console` stays **off**.
 - Version compatibility between ESLint 10, `typescript-eslint` and
   `eslint-plugin-functional` is verified at install time, not assumed here.
