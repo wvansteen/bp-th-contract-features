@@ -72,6 +72,26 @@ Two updates go with every feature:
   (including changes to `AGENTS.md` itself), dev environment, and ADR
   material are out of scope for the changelog.
 
+## Tooling for token-efficient exploration
+
+Use these tools before reading files or running broad shell commands. They
+reduce token usage without reducing performance:
+
+- **osgrep** — local, offline semantic code search. Use it to find code by
+  meaning ("where is X validated?", "how does the pipeline connect?") instead
+  of guessing file paths or grepping for exact strings. Prefer `osgrep_search`
+  for conceptual queries, `osgrep_trace` for call graphs, and
+  `osgrep_skeleton` for signatures without bodies. Falls back to `grep`/`glob`
+  only when you know the exact string or file name.
+
+- **RTK** — automatically rewrites shell commands to their token-leaner
+  equivalents (ultra-compact output, skipped env validation, batched flags).
+  It is active by default; it never lifts a deny, silences an ask, or changes
+  what OpenCode's own permission rules decide. Do not override or disable it.
+
+Always reach for osgrep + RTK before `read`, `grep`, `glob`, or raw `shell`
+calls when exploring the codebase.
+
 ## Scope
 
 Everything is out of scope by default. Solve the narrowest problem at
