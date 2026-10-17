@@ -7,6 +7,8 @@
     "dev": "bun --hot src/index.ts"
   },
   "dependencies": {
+    "@elysiajs/static": "^1.4.10",
+    "deep-chat": "^2.5.1",
     "elysia": "^1.4.30",
     "inngest": "^4.23.0"
   }
