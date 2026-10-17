@@ -13,6 +13,12 @@ metadata. Local development runs against a personal Box account containing a
 folder shared in from an enterprise account, so the auth method must work
 across that boundary and must not require enterprise app configuration.
 
+## Decision Drivers
+
+* Works across a personal Box account and a folder shared from an enterprise one
+* No enterprise app configuration or key management
+* Sufficient for a proof of concept
+
 ## Considered Options
 
 * Developer token
@@ -40,7 +46,3 @@ Every Box request carries `Authorization: Bearer $BOX_APP_TOKEN`, set by
 verification step that triggers a real ingest against the live API and reads
 the completed `page-0` step in the Inngest dev UI. The unit tests do not check
 this, because they run against a `BoxClientPort` fake and never reach the SDK.
-
-## More Information
-
-Supersede this ADR with JWT or Client Credentials Grant before production use.

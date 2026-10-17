@@ -20,7 +20,7 @@ documents and lets people interact with them.
 
 ## Install
 
-- [Podman](https://podman.io/) for the Inngest dev server.
+- [Podman](https://podman.io/) for the Inngest dev server and Postgres.
 - [Bun](https://bun.sh/) `1.2.23` (pinned in `package.json`).
 - [Ollama](https://ollama.com/) running locally with a model pulled
   (`ollama pull llama3.2`).
@@ -99,6 +99,10 @@ round, so the gates work on a fresh clone with nothing but `bun install`.
 ## Architecture Decisions
 
 ADRs live in [`docs/decisions/`](docs/decisions/).
+
+## Contributing
+
+Agent and contributor instructions live in [`AGENTS.md`](AGENTS.md).
 
 ## License
 
