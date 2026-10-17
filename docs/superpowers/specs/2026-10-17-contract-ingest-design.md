@@ -124,13 +124,13 @@ Table `documents`:
 
 ### Rate Limiting
 
-- `list-files` function: `concurrency: { limit: 1 }`, no rate limit (runs
-  rarely)
-- `process-file` function: `concurrency: { limit: 1 }`,
-  `rateLimit: { limit: 1000, period: "1m" }`
+- `list-files` function: `concurrency: { limit: 1 }`, no rate limit (runs rarely)
+- `process-file` function: `concurrency: { limit: 1 }`, `throttle: { limit: 1000, period: "1m" }`
 
-`rateLimit` rather than `throttle`: Inngest documents `throttle` as soft and
-warns it may build a large backlog, with `rateLimit` as the hard control.
+`throttle` rather than `rateLimit`, because they differ in what happens at the
+limit. `rateLimit` is lossy: Inngest skips runs once the limit is hit. `throttle`
+enqueues them. A document must never be dropped, so the queueing behavior is the
+one wanted here.
 
 Box's own limit is enforced by the SDK's backoff. When Box returns `429`, the
 Box client raises Inngest's `RetryAfterError` using the `Retry-After` header so
@@ -156,7 +156,8 @@ at 1000 by request validation, keeping a single run well inside the budget.
 - Drizzle ORM + postgres.js for database
 - Postgres 16
 
-Drizzle and the Box SDK are recorded as an ADR; see `docs/decisions/`.
+ADR-0005 records the Box authentication method and ADR-0006 the data model and
+database driver.
 
 ## Auth
 

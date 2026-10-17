@@ -29,12 +29,9 @@ ORM, postgres.js, Postgres 16
 
 - TypeScript on Bun, mostly functional style
 - No env access outside `src/config/env.ts` and `src/deps.ts`
-- Box auth: developer token via `BOX_APP_TOKEN`, wrapped by
-  `BoxDeveloperTokenAuth` (see ADR-0005)
-- Box folder id: `BOX_FOLDER_ID` env var, injected into handlers — never
-  hardcoded in a function
-- Rate limiting: honor Box's `429` + `Retry-After`; Inngest `rateLimit` on
-  `process-file` (hard), not `throttle`
+- Box auth: developer token via `BOX_APP_TOKEN`, wrapped by `BoxDeveloperTokenAuth` (see ADR-0005)
+- Box folder id: `BOX_FOLDER_ID` env var, injected into handlers — never hardcoded in a function
+- Rate limiting: honor Box's `429` + `Retry-After`; Inngest `throttle` on `process-file`, which queues rather than discards
 - Concurrency: `{ limit: 1 }` on both functions
 - DB table: `documents` with `document_id` (text PK) and `metadata` (jsonb)
 - `maxDocuments` is capped at 1000 by request validation (see Platform Limits)
@@ -374,10 +371,8 @@ Expected shapes:
 - `client.folders.getFolderItems(folderId, { queryParams: { offset, limit } })`
   → `Items`
 - `client.files.getFileById(fileId)` → `FileFull`
-- `Items.totalCount` — **camelCase**. The raw REST API's `total_count` is
-  renamed by the SDK. Do not use `total_count`.
-- `Items.entries` is `Array<FileFull | FolderMini | WebLink>` — a union
-  discriminated by `type`, so entries may be folders or web links.
+- `Items.totalCount` — **camelCase**. The raw REST API's `total_count` is renamed by the SDK. Do not use `total_count`.
+- `Items.entries` is `readonly Item[]` where `Item = FileFull | FolderMini | WebLink`, so entries may be folders or web links. `id`, `type`, and `name` are declared optional on each member, and `entries` and `totalCount` are optional on `Items` itself.
 - Auth is `new BoxClient({ auth: new BoxDeveloperTokenAuth({ token }) })`.
 
 - [ ] **Step 2: Define the port and types**
@@ -427,13 +422,28 @@ export function createBoxClient({ token }: { token: string }): BoxClientPort {
         queryParams: { offset, limit },
       });
 
+      // `totalCount` drives the pagination exit condition. Substituting a
+      // default here would silently truncate the run to the first page, so a
+      // missing field is an error instead.
+      if (result.totalCount === undefined) {
+        throw new Error(
+          `Box returned no total_count for folder ${folderId} at offset ${offset}`,
+        );
+      }
+
       return {
-        entries: (result.entries ?? []).map((entry) => ({
-          id: entry.id ?? "",
-          type: entry.type ?? "",
-          name: entry.name ?? "",
-        })),
-        totalCount: result.totalCount ?? 0,
+        entries: (result.entries ?? []).map((entry) => {
+          // The SDK types `id` and `type` as optional on every member of the
+          // `FileFull | FolderMini | WebLink` union. An entry without them
+          // cannot be processed, so it is an error rather than a silent skip.
+          if (!entry.id || !entry.type) {
+            throw new Error(
+              `Box returned an entry without id or type in folder ${folderId} at offset ${offset}`,
+            );
+          }
+          return { id: entry.id, type: entry.type, name: entry.name ?? "" };
+        }),
+        totalCount: result.totalCount,
       };
     },
 
@@ -980,12 +990,16 @@ export function createDrizzleDocumentStore(db: DrizzleDb): DocumentStore {
     },
 
     async listAll() {
+      // Ordered explicitly. Postgres returns rows in an unspecified order, and
+      // an upserted row moves, so two identical ingests would otherwise produce
+      // different `/contracts` responses.
       const rows = await db
         .select({
           document_id: documents.document_id,
           metadata: documents.metadata,
         })
-        .from(documents);
+        .from(documents)
+        .orderBy(documents.document_id);
 
       return rows.map((row) => ({
         documentId: row.document_id,
@@ -1138,7 +1152,7 @@ export const processFileFn = inngest.createFunction(
     id: "process-file",
     triggers: [{ event: "box/process.file" }],
     concurrency: { limit: 1 },
-    rateLimit: { limit: 1000, period: "1m" },
+    throttle: { limit: 1000, period: "1m" },
     retries: 3,
   },
   async ({ event, step }) => {
@@ -1153,25 +1167,17 @@ export const processFileFn = inngest.createFunction(
 
 Three details that matter, each verified against the installed SDK:
 
-- **Trigger shape is `triggers: [{ event: "..." }]`.** `inngest@4.23.0` types
-  declare `triggers?: InngestFunction.Trigger<string>[]`, and the working
-  `hello.ts` in this repo already uses the array form. Passing a bare
-  `{ event: ... }` as the second argument does not typecheck.
-- **`rateLimit`, not `throttle`.** Inngest's own docs describe `throttle` as
-  soft, warning it "may lead to a large backlog"; `rateLimit` is the hard
-  control.
-- **`step` is narrowed at the boundary, not typed as `any`.** Inngest's
-  `step.run` signature resolves through a middleware-transform conditional that
-  cannot be satisfied structurally by a hand-written interface, so the adapter
-  above asserts the one fact that matters — that `Jsonify` is an identity for
-  our JSON-safe payloads. Attempting to pass `step` directly fails to compile.
+- **Trigger shape is `triggers: [{ event: "..." }]`.** `inngest@4.23.0` types declare `triggers?: InngestFunction.Trigger<string>[]`, and the working `hello.ts` in this repo already uses the array form. Passing a bare `{ event: ... }` as the second argument does not typecheck.
+- **`throttle`, not `rateLimit`.** They are opposites on overflow. Inngest's own JSDoc says `rateLimit` is "a lossy, hard limit. Once the limit is hit, new runs will be skipped. To enqueue work when a rate limit is hit, use the `throttle` parameter" (`inngest/components/InngestFunction.d.ts:172-176`). `throttle` enqueues instead. With `concurrency: { limit: 1 }`, Inngest counts executing steps, so `maxDocuments` documents at 2 steps each serialize well past any one-minute window. `rateLimit` would drop documents with no error and no red run.
+- **`step` is narrowed at the boundary, not typed as `any`.** Inngest's `step.run` signature resolves through a middleware-transform conditional that cannot be satisfied structurally by a hand-written interface, so the adapter above asserts the one fact that matters — that `Jsonify` is an identity for our JSON-safe payloads. Attempting to pass `step` directly fails to compile.
 
 - [ ] **Step 10: Delete the hello-world demo**
 
-Delete `src/functions/hello.ts` and `src/send.ts`. Leaving them in place means
-`src/send.ts` sends `demo/hello.world` to an event with no registered trigger,
-so it looks like it works while doing nothing. Task 5 removes the matching
-README line.
+Run: `git rm src/functions/hello.ts src/send.ts`
+
+Leaving either in place means `src/send.ts` sends `demo/hello.world` to an event with no registered trigger, so it looks like it works while doing nothing. Task 5 removes the matching README line.
+
+Use `git rm` rather than `rm`, because `git add src/functions/` in the next step stages the `hello.ts` deletion but not a plain `rm` of `src/send.ts`, which sits outside that directory.
 
 - [ ] **Step 11: Typecheck and commit**
 
@@ -1295,7 +1301,9 @@ describe("GET /contracts", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toEqual([
+    // Set comparison, not an ordered one. Ordering is the Drizzle adapter's
+    // contract and needs a real database to verify, not a fixed fake array.
+    expect([...body].sort((a: any, b: any) => a.documentId.localeCompare(b.documentId))).toEqual([
       { documentId: "1", metadata: { name: "contract.pdf" } },
       { documentId: "2", metadata: { name: "nda.pdf" } },
     ]);
@@ -1404,11 +1412,12 @@ git commit -m "feat: add contract routes"
 
 ---
 
-### Task 5: Documentation and ADR
+### Task 5: Documentation and ADRs
 
 **Files:**
 
 - Create: `docs/decisions/0005-box-api-authentication.md`
+- Create: `docs/decisions/0006-data-model-and-database-driver.md`
 - Modify: `README.md`
 - Modify: `CHANGELOG.md`
 - Modify: `AGENTS.md`
@@ -1422,8 +1431,7 @@ git commit -m "feat: add contract routes"
 
 Run: `ls docs/decisions/`
 
-`0000` through `0004` are taken, so the next free number is `0005`. Do not reuse
-`0001`.
+`0000` through `0004` are taken, so the next free numbers are `0005` and `0006`. Do not reuse `0001`. Two ADRs are written below: Box auth and the data model.
 
 - [ ] **Step 2: Write the ADR**
 
@@ -1468,9 +1476,11 @@ folder.
 
 ### Confirmation
 
-Every Box request carries `Authorization: Bearer $BOX_APP_TOKEN`. Verified by
-`src/functions/list-files.test.ts` running against `BoxClientPort` plus the
-end-to-end ingest check in the implementation plan's verification task.
+Every Box request carries `Authorization: Bearer $BOX_APP_TOKEN`, set by
+`BoxDeveloperTokenAuth` in `src/box/client.ts`. Confirmed by the end-to-end
+verification step that triggers a real ingest against the live API and reads
+the completed `page-0` step in the Inngest dev UI. The unit tests do not check
+this, because they run against a `BoxClientPort` fake and never reach the SDK.
 
 ## More Information
 
@@ -1480,7 +1490,62 @@ Supersede this ADR with JWT or Client Credentials Grant before production use.
 The body headings match `adr-template.md` and every existing ADR, and include
 the `### Confirmation` element AGENTS.md requires.
 
-- [ ] **Step 3: Update README.md in place**
+- [ ] **Step 3: Write the data-model ADR**
+
+Create `docs/decisions/0006-data-model-and-database-driver.md`, following
+`docs/decisions/adr-template.md`:
+
+```markdown
+---
+status: accepted
+date: 2026-10-17
+decision-makers: William Van Steen
+---
+
+# Data model and database driver
+
+## Context and Problem Statement
+
+The pipeline stores one row per document: an id and whatever metadata Box
+returns. The ingest path is at-least-once, so re-processing a file must not
+create a second row. Access goes through a narrow `DocumentStore` port so the
+handlers stay testable without a database.
+
+## Considered Options
+
+* Drizzle ORM with postgres.js
+* Drizzle ORM with node-postgres
+* Raw SQL with postgres.js and no query builder
+
+## Decision Outcome
+
+Chosen option: "Drizzle ORM with postgres.js", because the conflict-safe upsert
+the design depends on is expressed directly as
+`onConflictDoUpdate({ target, set })`, and a typed schema gives the `documents`
+table one definition shared by the adapter and the migrations.
+
+### Consequences
+
+* Good, because `onConflictDoUpdate` on `document_id` is what makes a redelivered
+  event idempotent.
+* Good, because `drizzle-kit` generates and applies the migration from the same
+  schema file.
+* Bad, because Drizzle's generic query types are intricate, so the adapter is
+  the only place in the codebase that touches them.
+
+### Confirmation
+
+`src/db/document-store.test.ts` upserts the same `documentId` three times
+against a real Postgres and asserts one row remains with the latest metadata.
+Run it with `bun test src/db/document-store.test.ts`.
+
+## More Information
+
+Revisit if the document count outgrows a single-column primary key, or if
+document metadata needs querying rather than listing.
+```
+
+- [ ] **Step 4: Update README.md in place**
 
 The README already has both an `## Install` and a `## Usage` section, and a
 Table of Contents listing them. Edit the existing sections — do not append new
@@ -1533,7 +1598,7 @@ curl http://localhost:3000/contracts
 The `bun run src/send.ts` line is removed along with `src/send.ts` in Task 3.
 Leave the Table of Contents unchanged — the headings it names still exist.
 
-- [ ] **Step 4: Update CHANGELOG.md**
+- [ ] **Step 5: Update CHANGELOG.md**
 
 Add under `[Unreleased]` -> `### Added`:
 
@@ -1543,7 +1608,7 @@ Add under `[Unreleased]` -> `### Added`:
   `GET /contracts` returns all stored document metadata from Postgres.
 ```
 
-- [ ] **Step 5: Update AGENTS.md**
+- [ ] **Step 6: Update AGENTS.md**
 
 Add to the Style section:
 
@@ -1553,16 +1618,99 @@ Add to the Style section:
   (`src/deps.ts`) and inject them. Pass capabilities as parameters, not globals.
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add docs/decisions/0005-box-api-authentication.md README.md CHANGELOG.md AGENTS.md
+git add docs/decisions/0005-box-api-authentication.md docs/decisions/0006-data-model-and-database-driver.md README.md CHANGELOG.md AGENTS.md
 git commit -m "docs: add Box auth ADR and update README, CHANGELOG, AGENTS.md"
 ```
 
 ---
 
-### Task 6: End-to-end verification
+### Task 6: Document store verification against real Postgres
+
+The upsert's conflict handling and the ordering of `listAll` are the two
+properties Review Focus #2 depends on, and neither is reachable through the
+fake-backed unit tests. They run here instead.
+
+**Files:**
+- Create: `src/db/document-store.test.ts`
+
+**Interfaces:**
+- Consumes: `createDrizzleDocumentStore` (Task 3), `documents` (Task 1)
+- Produces: verified conflict-safe upsert and stable ordering
+
+- [ ] **Step 1: Write the test**
+
+Create `src/db/document-store.test.ts`:
+
+```ts
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { sql } from "drizzle-orm";
+import { createDbClient } from "./client";
+import { createDrizzleDocumentStore } from "./document-store";
+
+const databaseUrl =
+  process.env.TEST_DATABASE_URL ?? "postgresql://bp:bp@localhost:5432/contracts";
+
+const { db, client } = createDbClient(databaseUrl);
+const store = createDrizzleDocumentStore(db);
+
+beforeAll(async () => {
+  await db.execute(sql`TRUNCATE documents`);
+});
+
+afterAll(async () => {
+  await client.end();
+});
+
+describe("createDrizzleDocumentStore", () => {
+  it("upserts without duplicating rows", async () => {
+    await store.upsert({ documentId: "1", metadata: { name: "first.pdf" } });
+    await store.upsert({ documentId: "1", metadata: { name: "renamed.pdf" } });
+    await store.upsert({ documentId: "2", metadata: { name: "second.pdf" } });
+
+    const rows = await store.listAll();
+
+    expect(rows).toHaveLength(2);
+    const one = rows.find((r) => r.documentId === "1");
+    expect(one?.metadata).toEqual({ name: "renamed.pdf" });
+  });
+
+  it("orders by document_id, and re-upserting does not move a row", async () => {
+    const before = (await store.listAll()).map((r) => r.documentId);
+
+    await store.upsert({ documentId: "1", metadata: { name: "renamed.pdf" } });
+
+    const after = (await store.listAll()).map((r) => r.documentId);
+
+    expect(after).toEqual(before);
+    expect([...after].sort()).toEqual(after);
+  });
+});
+```
+
+- [ ] **Step 2: Run against Postgres**
+
+Run: `bun run dev:setup`
+Run: `bun run db:migrate`
+Run: `bun test src/db/document-store.test.ts`
+Expected: PASS (2 tests)
+
+If the second test fails on the ordering assertion, `.orderBy` is missing from
+`listAll`. Without it Postgres returns rows in an unspecified order and an
+upserted row moves.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/db/document-store.test.ts
+git commit -m "test: cover document store upsert and ordering against Postgres"
+```
+
+---
+
+### Task 7: End-to-end verification
 
 **Files:**
 - No new files — this task verifies the full pipeline against real infrastructure
@@ -1603,20 +1751,30 @@ Expected: JSON array of up to 5 `{ documentId, metadata }` objects
 
 - [ ] **Step 6: Verify the real Box adapter and entry filtering**
 
-Confirm in the Inngest dev UI that the `page-0` step shows the real `totalCount`
-from Box and that the number of `box/process.file` events is less than or equal
-to it. If the Box folder contains subfolders or web links, the event count is
-strictly less than `totalCount` — that is the filter working.
+In the Inngest dev UI, open the `page-0` step result and count the entries whose
+`type` is `file`. Compare that to the number of `box/process.file` events the
+`emit-0` step sent. The two must be equal when `maxDocuments` allows the whole
+page, and the event count must be lower than the raw entry count whenever the
+page contained a folder or web link. Comparing sent events against the file
+entries in the same step result is the only version of this check that can
+fail; comparing them against `totalCount` passes whether or not the filter
+exists.
 
-- [ ] **Step 7: Verify idempotency by re-running**
+- [ ] **Step 7: Verify the event-id dedup window on re-run**
 
 Run: `curl -X POST http://localhost:3000/process-contracts -H "Content-Type: application/json" -d '{"maxDocuments": 5}'`
-Expected: `201`
+Expected: `201`, and zero new `box/process.file` runs in the dev UI. Every
+emitted event carries `id: "box/process.file/<fileId>"`, and Inngest suppresses a
+second run for an id it has already seen inside its 24-hour window.
+
+This step verifies the event-id layer only. It does not exercise the upsert,
+because the suppressed runs mean `upsert` never executes twice; Task 6 covers
+that against a real database instead.
 
 - [ ] **Step 8: Verify no duplicate rows**
 
 Run: `curl http://localhost:3000/contracts`
-Expected: still exactly 5 documents — the upsert de-duplicates
+Expected: the same set of documents as before the re-run, in the same order
 
 - [ ] **Step 9: Verify a non-file entry does not produce a red run**
 
