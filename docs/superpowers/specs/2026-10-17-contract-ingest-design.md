@@ -161,9 +161,9 @@ capped at 1000 by request validation to bound one run's fan-out and cost.
 - Drizzle ORM + postgres.js for database
 - Postgres 16
 
-ADR-0005 records the Box authentication method and ADR-0006 the data model and
+ADR-0006 records the Box authentication method and ADR-0007 the data model and
 database driver.
 
 ## Auth
 
-Box API developer token (see ADR-0005). Passed as `BOX_APP_TOKEN` env var.
+Box API developer token (see ADR-0006). Passed as `BOX_APP_TOKEN` env var.
