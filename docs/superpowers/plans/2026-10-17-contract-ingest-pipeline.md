@@ -477,7 +477,7 @@ export function createBoxClient({ token }: { token: string }): BoxClientPort {
       // missing field is an error instead.
       if (result.totalCount === undefined) {
         throw new Error(
-          `Box returned no total_count for folder ${folderId} at offset ${offset}`,
+          `Box returned no totalCount for folder ${folderId} at offset ${offset}`,
         );
       }
 
