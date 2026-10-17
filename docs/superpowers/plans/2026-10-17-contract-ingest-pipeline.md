@@ -1759,11 +1759,16 @@ folder.
 ### Confirmation
 
 Every Box request carries `Authorization: Bearer $BOX_APP_TOKEN`, set by
-`BoxDeveloperTokenAuth` in `src/box/client.ts`. Confirmed by `grep -q "BoxDeveloperTokenAuth" src/box/client.ts`, which fails
-if the adapter stops constructing the SDK's developer-token auth. The live check
-is Task 7 Step 4, which reads the completed `page-0` step in the Inngest dev UI
-after a real ingest. The unit tests cannot check this: they run against a
-`BoxClientPort` fake and never reach the SDK.
+`BoxDeveloperTokenAuth` in `src/box/client.ts`. Confirmed by this command, which
+exits non-zero if the adapter stops constructing the SDK's developer-token auth:
+
+```sh
+grep -q "BoxDeveloperTokenAuth" src/box/client.ts
+```
+
+The live check is Task 7 Step 6, which opens the completed `page-0` step result
+in the Inngest dev UI after a real ingest. The unit tests cannot check this: they
+run against a `BoxClientPort` fake and never reach the SDK.
 
 ## More Information
 
