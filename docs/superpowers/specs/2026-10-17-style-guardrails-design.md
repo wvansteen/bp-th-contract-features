@@ -37,21 +37,24 @@ the things ESLint and the TypeScript compiler can decide, they decide hard.
 Every rule is `error` severity, and lint runs with `--max-warnings 0`. A warning
 does not fail a tool call, so warnings are not an enforcement mechanism here.
 
-| Lock                         | Rule                                                                           | Notes                                                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| only `const`                 | `functional/no-let`                                                            | bans `let` outright                                                                                                         |
-|                              | `no-var`                                                                       |                                                                                                                             |
-|                              | `prefer-const`                                                                 | fixer only; aids conversion                                                                                                 |
-| no assignments               | `functional/immutable-data`                                                    | property writes, `delete`, `push`/`sort`/`splice`, `Object.assign`, `Map.set`, `Set.add`. Type-aware.                       |
-|                              | `no-param-reassign` with `props: true`                                         | parameters are constants                                                                                                    |
-|                              | `no-plusplus`                                                                  | `i++` is mutation                                                                                                           |
-| never mutate a `const`       | `functional/immutable-data`                                                    | same rule. `ignoreImmediateMutation` keeps its default, so `[...xs].sort()` is allowed while `const o = {}; o.x = 1` is not |
-| no loops                     | `functional/no-loop-statements`                                                | bans `for`, `for..of`, `for..in`, `while`, `do`                                                                             |
-| no `break`/`continue`/`goto` | _satisfied by the above_                                                       | no loops leaves only `switch`/`break`, which is idiomatic and stays allowed. `goto` does not exist in JS                    |
-| no `any`                     | `@typescript-eslint/no-explicit-any`                                           | the literal token                                                                                                           |
-|                              | `@typescript-eslint/no-unsafe-{argument,assignment,call,member-access,return}` | `any` leaking in from `JSON.parse`, `res.json()`, or an untyped dependency: the leak `no-explicit-any` cannot see           |
-|                              | `@typescript-eslint/restrict-template-expressions` with `allowAny: false`      | `any` interpolated into a template literal, which the `no-unsafe-*` family does not cover and the rule allows by default    |
-|                              | `@typescript-eslint/no-unsafe-function-type`                                   | the `Function` type                                                                                                         |
+| Lock                         | Rule                                                                           | Notes                                                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| only `const`                 | `functional/no-let`                                                            | bans `let` outright                                                                                                               |
+|                              | `no-var`                                                                       |                                                                                                                                   |
+|                              | `prefer-const`                                                                 | fixer only; aids conversion                                                                                                       |
+| no assignments               | `functional/immutable-data`                                                    | property writes, `delete`, `push`/`sort`/`splice`, `Object.assign`, `Map.set`, `Set.add`. Type-aware.                             |
+|                              | `no-param-reassign` with `props: true`                                         | parameters are constants                                                                                                          |
+|                              | `no-plusplus`                                                                  | `i++` is mutation                                                                                                                 |
+| never mutate a `const`       | `functional/immutable-data`                                                    | same rule. `ignoreImmediateMutation` keeps its default, so `[...xs].sort()` is allowed while `const o = {}; o.x = 1` is not       |
+| no loops                     | `functional/no-loop-statements`                                                | bans `for`, `for..of`, `for..in`, `while`, `do`                                                                                   |
+| no `break`/`continue`/`goto` | _satisfied by the above_                                                       | no loops leaves only `switch`/`break`, which is idiomatic and stays allowed. `goto` does not exist in JS                          |
+| no `any`                     | `@typescript-eslint/no-explicit-any`                                           | the literal token                                                                                                                 |
+|                              | `@typescript-eslint/no-unsafe-{argument,assignment,call,member-access,return}` | `any` leaking in from `JSON.parse`, `res.json()`, or an untyped dependency: the leak `no-explicit-any` cannot see                 |
+|                              | `@typescript-eslint/restrict-template-expressions` with `allowAny: false`      | `any` interpolated into a template literal, which the `no-unsafe-*` family does not cover and the rule allows by default          |
+|                              | `@typescript-eslint/no-unsafe-function-type`                                   | the `Function` type                                                                                                               |
+| no `eval`                    | `no-eval`                                                                      | `eval` smuggles `let`, assignment, loops and `any` past every lock at once; `new Function` is already caught by `no-implied-eval` |
+| no mutation by reflection    | `no-restricted-properties` (`Reflect.set`, `Reflect.deleteProperty`)           | mutation through reflection, which `functional/immutable-data` misses                                                             |
+| no mutation by collection    | `no-restricted-properties` (`.set`, `.delete`, `.add`)                         | `WeakMap.set`/`delete` and `WeakSet.add`/`delete`, which `functional/immutable-data` does not flag                                |
 
 `functional/no-expression-statements`, `functional/no-return-void`,
 `functional/no-classes`, `functional/no-this-expressions`,
@@ -86,6 +89,13 @@ in `eslint.config.ts`, where it is visible and reviewable in one place.
 An agent that hits a lock therefore cannot write its way past it in the file it
 is editing. It has to stop and ask. That is the intended behaviour, not an
 accident.
+
+One residual is accepted, and it is narrow. Invoking a `CallableFunction`-typed
+value through `f.call(...)` or `f.apply(...)` is not caught by
+`@typescript-eslint/no-unsafe-call`, which only sees direct `f(...)` calls. It
+needs a `CallableFunction`-typed value to exist first, so it is not reachable
+from ordinary typed code, and no config is added for it. The claim above is
+precise to what the rules cover, not absolute.
 
 ## Locks Never Relax
 

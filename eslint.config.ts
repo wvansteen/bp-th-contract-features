@@ -48,6 +48,35 @@ export default tseslint.config(
       ],
       "@typescript-eslint/no-non-null-assertion": "error",
       "@typescript-eslint/no-unsafe-type-assertion": "error",
+      "no-eval": "error",
+      "no-restricted-properties": [
+        "error",
+        {
+          object: "Reflect",
+          property: "set",
+          message: "No assignment: mutation is banned. Restructure instead.",
+        },
+        {
+          object: "Reflect",
+          property: "deleteProperty",
+          message: "No assignment: mutation is banned. Restructure instead.",
+        },
+        {
+          property: "set",
+          message:
+            "No assignment: mutating .set() is banned. Restructure instead.",
+        },
+        {
+          property: "delete",
+          message:
+            "No assignment: mutating .delete() is banned. Restructure instead.",
+        },
+        {
+          property: "add",
+          message:
+            "No assignment: mutating .add() is banned. Restructure instead.",
+        },
+      ],
       "no-console": "off",
     },
   },
