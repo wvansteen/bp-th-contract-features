@@ -72,6 +72,12 @@ Two updates go with every feature:
   (including changes to `AGENTS.md` itself), dev environment, and ADR
   material are out of scope for the changelog.
 
+### 5. Clean up
+
+Before cleaning up a workspace (deleting a worktree, finishing a
+branch), stop its dev environment first with `mise run dev:teardown`,
+so the workspace's containers and networks do not outlive it.
+
 ## Tooling for token-efficient exploration
 
 Use these tools before reading files or running broad shell commands. They
