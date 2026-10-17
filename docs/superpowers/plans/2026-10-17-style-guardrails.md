@@ -310,11 +310,13 @@ Run: `bun run lint` Expected: FAIL on
 
 Run: `bun run lint` and fix every reported problem. Known work:
 
-- `src/inngest.ts`: type the event schema on the client so `event.data` is not
+- `src/inngest.ts`: give `demo/hello.world` a typed event so `event.data` is not
   `any`:
-  `new Inngest<{ Events: { "demo/hello.world": { data: { name?: string } } } }>({ id: "contract-features" })`
-- `src/functions/hello.ts`: with the schema typed, `event.data?.name` becomes
-  `event.data.name`; drop the unnecessary optional chain rather than asserting.
+  `eventType("demo/hello.world", { schema: staticSchema<{ name?: string }>() })`.
+  In `inngest@4.23.0` event typing lives on the trigger, not the client.
+- `src/functions/hello.ts`: pass that typed event as the trigger; with the
+  schema typed, `event.data?.name` becomes `event.data.name`, so drop the
+  unnecessary optional chain rather than asserting.
 
 Do not introduce a cast or a type-suppression comment anywhere. If a lock cannot
 be satisfied without one, stop and report.

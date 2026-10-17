@@ -71,10 +71,11 @@ closes:
 | `@typescript-eslint/no-non-null-assertion`    | `error`                                    |
 | `@typescript-eslint/no-unsafe-type-assertion` | `error`                                    |
 
-A value of unknown shape becomes a real type, not a cast. This is why
-`src/functions/hello.ts` needs an Inngest event schema typed on the client
-(`new Inngest<{ Events: { "demo/hello.world": { data: { name?: string } } } }>`)
-rather than an assertion on `event.data`.
+A value of unknown shape becomes a real type, not a cast. In `inngest@4.23.0`
+event typing lives on the trigger, so `src/inngest.ts` defines
+`eventType("demo/hello.world", { schema: staticSchema<{ name?: string }>() })`
+and `src/functions/hello.ts` uses it as the trigger. `event.data` is then a real
+type, with no assertion.
 
 ## Escapes Are Banned In-File
 
