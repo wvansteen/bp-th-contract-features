@@ -24,14 +24,11 @@ export function createBoxClient({ token }: { token: string }): BoxClientPort {
       }
 
       return {
-        entries: (result.entries ?? []).map((entry) => {
-          if (!entry.id || !entry.type) {
-            throw new Error(
-              `Box returned an entry without id or type in folder ${folderId} at offset ${offset}`,
-            );
-          }
-          return { id: entry.id, type: entry.type, name: entry.name ?? "" };
-        }),
+        entries: (result.entries ?? []).map((entry) => ({
+          id: entry.id,
+          type: entry.type,
+          name: entry.name ?? "",
+        })),
         totalCount: result.totalCount,
       };
     },
