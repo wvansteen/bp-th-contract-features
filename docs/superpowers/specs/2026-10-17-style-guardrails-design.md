@@ -1,20 +1,18 @@
 # Style Guardrails: Design Spec
 
-**Date:** 2026-10-17
-**Status:** Draft, awaiting approval
+**Date:** 2026-10-17 **Status:** Draft, awaiting approval
 
 ## Intent
 
-Violations of this project's functional style should fail at tool-call time,
-not at self code review. Today the only feedback loop is a human reading a
-diff at the end, and by then a bad section has already been written; an
-over-engineered one has been written twice. The locks below move the
-lintable subset of that feedback to the moment the code is written.
+Violations of this project's functional style should fail at tool-call time, not
+at self code review. Today the only feedback loop is a human reading a diff at
+the end, and by then a bad section has already been written; an over-engineered
+one has been written twice. The locks below move the lintable subset of that
+feedback to the moment the code is written.
 
 This does not try to catch every failure. Over-engineering and broken
-encapsulation are design problems and stay out of scope here. The goal is
-that the things ESLint and the TypeScript compiler can decide, they decide
-hard.
+encapsulation are design problems and stay out of scope here. The goal is that
+the things ESLint and the TypeScript compiler can decide, they decide hard.
 
 ## Goals
 
@@ -36,9 +34,8 @@ hard.
 
 ## The Locks
 
-Every rule is `error` severity, and lint runs with `--max-warnings 0`. A
-warning does not fail a tool call, so warnings are not an enforcement
-mechanism here.
+Every rule is `error` severity, and lint runs with `--max-warnings 0`. A warning
+does not fail a tool call, so warnings are not an enforcement mechanism here.
 
 | Lock                         | Rule                                                                           | Notes                                                                                                                       |
 | ---------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
@@ -58,8 +55,8 @@ mechanism here.
 `functional/no-expression-statements`, `functional/no-return-void`,
 `functional/no-classes`, `functional/no-this-expressions`,
 `functional/no-throw-statements` and `functional/no-try-statements` stay
-**off**. Logging is an accepted side effect in this repo (see `AGENTS.md`),
-and Elysia and Inngest handlers are legitimately imperative at the edges.
+**off**. Logging is an accepted side effect in this repo (see `AGENTS.md`), and
+Elysia and Inngest handlers are legitimately imperative at the edges.
 
 ## No Route Around a Type Error
 
@@ -80,21 +77,20 @@ rather than an assertion on `event.data`.
 
 ## Escapes Are Banned In-File
 
-ESLint runs with `--no-inline-config`. No `eslint-disable`,
-`eslint-enable`, `eslint`, or `global` comment has any effect in any file.
-Every exception lives in `eslint.config.ts`, where it is visible and
-reviewable in one place.
+ESLint runs with `--no-inline-config`. No `eslint-disable`, `eslint-enable`,
+`eslint`, or `global` comment has any effect in any file. Every exception lives
+in `eslint.config.ts`, where it is visible and reviewable in one place.
 
-An agent that hits a lock therefore cannot write its way past it in the file
-it is editing. It has to stop and ask. That is the intended behaviour, not
-an accident.
+An agent that hits a lock therefore cannot write its way past it in the file it
+is editing. It has to stop and ask. That is the intended behaviour, not an
+accident.
 
 ## Locks Never Relax
 
 When a lock rule fires on framework-shaped code (for example
 `no-unsafe-argument` on `handler(request)` in `src/index.ts`, where the type
-comes from Inngest), the code changes or the work stops and escalates. The
-rule does not get downgraded.
+comes from Inngest), the code changes or the work stops and escalates. The rule
+does not get downgraded.
 
 The "framework relaxations" section of `eslint.config.ts` may only ever hold
 non-lock rules. `@typescript-eslint/no-misused-promises` is the expected
@@ -103,14 +99,13 @@ hole is a default.
 
 ## Why ESLint and Prettier
 
-Biome is a single Rust binary that replaces both tools and is much faster,
-but it has no equivalent of `functional/no-let`, `functional/immutable-data`
-or `functional/no-loop-statements`. It has no `noLet` rule at all, and its
-`useConst` is `prefer-const`, which silently permits a reassignable `let`.
-Its plugin language is GritQL, with no JS/TS API and no plugin options, so
-the locks could not be added later. Oxlint would run
-`eslint-plugin-functional` unchanged, but its ESLint-compatible plugin API
-is still alpha.
+Biome is a single Rust binary that replaces both tools and is much faster, but
+it has no equivalent of `functional/no-let`, `functional/immutable-data` or
+`functional/no-loop-statements`. It has no `noLet` rule at all, and its
+`useConst` is `prefer-const`, which silently permits a reassignable `let`. Its
+plugin language is GritQL, with no JS/TS API and no plugin options, so the locks
+could not be added later. Oxlint would run `eslint-plugin-functional` unchanged,
+but its ESLint-compatible plugin API is still alpha.
 
 ## Enforcement Layers
 
@@ -123,17 +118,17 @@ is still alpha.
 | Pre-commit | all four, in that order              | anything above, before the commit exists |
 
 `bun build` does **not** typecheck: Bun's transpiler erases types without
-verifying them. `typecheck` is its own step and cannot be folded into
-`build`. Elysia's own documented sequence runs them separately too.
+verifying them. `typecheck` is its own step and cannot be folded into `build`.
+Elysia's own documented sequence runs them separately too.
 
 `build` means Elysia's quick-start command,
-`bun build src/index.ts --target bun --outdir ./dist`, so it stays fast and
-does not bake in a target platform before hosting is decided.
+`bun build src/index.ts --target bun --outdir ./dist`, so it stays fast and does
+not bake in a target platform before hosting is decided.
 
-The hook script begins with `set -e`. Without it a shell hook keeps going
-past a failing command and the gate silently does not gate. The hook only
-runs read-only checks: a hook that silently rewrites the working tree is
-itself a mutation, and `--fix` would launder violations into compliance.
+The hook script begins with `set -e`. Without it a shell hook keeps going past a
+failing command and the gate silently does not gate. The hook only runs
+read-only checks: a hook that silently rewrites the working tree is itself a
+mutation, and `--fix` would launder violations into compliance.
 
 Husky 9 installs hooks via `"prepare": "husky"`; `bun install` regenerates
 `.husky/_`, which is gitignored. `dist/` is gitignored too.
@@ -143,46 +138,45 @@ Husky 9 installs hooks via `"prepare": "husky"`; `bun install` regenerates
 1. Everything is `error`, and lint runs with `--max-warnings 0`, so the tool
    call exits non-zero.
 2. `functional/no-let`, `functional/immutable-data` and
-   `functional/no-loop-statements` have **no fixers**, so `--fix` cannot turn
-   a violation into compliance.
+   `functional/no-loop-statements` have **no fixers**, so `--fix` cannot turn a
+   violation into compliance.
 3. `--no-inline-config` removes the `eslint-disable` route.
 4. `ban-ts-comment`, `no-non-null-assertion` and `no-unsafe-type-assertion`
    remove the cast and assertion routes.
 
 ## Extensibility
 
-`eslint.config.ts` is the single extension point, with three labelled
-sections: hard locks, framework relaxations (non-lock rules only), and an
-"add rules here" tail. Project-specific rules go in as a local plugin defined
-inline in that file: ESLint supports defining rules at runtime without
-publishing a package, so a new lock is one line plus a rule. A new plugin is
-one import plus one array entry.
+`eslint.config.ts` is the single extension point, with three labelled sections:
+hard locks, framework relaxations (non-lock rules only), and an "add rules here"
+tail. Project-specific rules go in as a local plugin defined inline in that
+file: ESLint supports defining rules at runtime without publishing a package, so
+a new lock is one line plus a rule. A new plugin is one import plus one array
+entry.
 
 ## Guidelines
 
 `docs/guidelines/functional-typescript.md` carries what lint cannot express:
 prefer expressions over statements, prefer `Array.prototype` transforms over
-accumulation, and what to do when mutation genuinely seems necessary (stop
-and ask, rather than escape). `AGENTS.md` gets a short `## Style` section
-listing the locks one line each with a pointer, because that is the file
-agents actually read.
+accumulation, and what to do when mutation genuinely seems necessary (stop and
+ask, rather than escape). `AGENTS.md` gets a short `## Style` section listing
+the locks one line each with a pointer, because that is the file agents actually
+read.
 
 ## Scope of Prettier
 
-Prettier covers code, config and Markdown: `*.ts`, `*.js`, `*.json`,
-`*.yaml`, `*.yml`, `*.md`, `public/index.html`.
+Prettier covers code, config and Markdown: `*.ts`, `*.js`, `*.json`, `*.yaml`,
+`*.yml`, `*.md`, `public/index.html`.
 
-`proseWrap` is set to `"preserve"` explicitly rather than left to its
-default, so the hand-wrapped prose in `AGENTS.md` and the ADRs keeps its
-line breaks. Prettier still normalises table alignment, list markers,
-emphasis and ordered-list numbering, and it formats fenced code blocks via
-`embeddedLanguageFormatting: "auto"`.
+`proseWrap` is set to `"always"`, so Prettier owns prose wrapping and source
+line breaks are never hand-managed. Prettier also normalises table alignment,
+list markers, emphasis and ordered-list numbering, and it formats fenced code
+blocks via `embeddedLanguageFormatting: "auto"`.
 
 That last one is the reason Markdown is in scope rather than out: the
-TypeScript, JSON and shell samples in the ADRs and in this document format
-the same way `src/` does. Excluding Markdown would leave those samples
-unformatted and unenforced, which is drift of the same kind the locks exist
-to prevent. Decided by the requester after challenge.
+TypeScript, JSON and shell samples in the ADRs and in this document format the
+same way `src/` does. Excluding Markdown would leave those samples unformatted
+and unenforced, which is drift of the same kind the locks exist to prevent.
+Decided by the requester after challenge.
 
 ## Tech Stack
 
@@ -200,9 +194,9 @@ to prevent. Decided by the requester after challenge.
 
 - There is no `tsconfig.json` today. `@types/bun` belongs in devDependencies;
   the code uses `Bun.file`.
-- The four existing source files will need to change to pass. That is
-  expected and in scope. `src/functions/hello.ts` specifically needs typed
-  Inngest events rather than a cast.
+- The four existing source files will need to change to pass. That is expected
+  and in scope. `src/functions/hello.ts` specifically needs typed Inngest events
+  rather than a cast.
 - `no-console` stays **off**.
 - Version compatibility between ESLint 10, `typescript-eslint` and
   `eslint-plugin-functional` is verified at install time, not assumed here.
@@ -211,25 +205,25 @@ to prevent. Decided by the requester after challenge.
 
 - Exact `tsconfig.json` compiler options beyond `strict`, as long as
   `noImplicitAny` is on and `tsc --noEmit` passes.
-- Prettier option values, except `proseWrap` which is pinned to `"preserve"`
-  and must not be changed.
+- Prettier option values, except `proseWrap` which is pinned to `"always"` and
+  must not be changed.
 - Whether the hook lists the four commands separately or chains them, given
   `set -e` is present either way.
 - Where in the standard-readme structure the four commands go in `README.md`.
 
 ## Confirmed Calls
 
-Settled by the author of this document rather than by its reviewer. Each is
-open to correction on review.
+Settled by the author of this document rather than by its reviewer. Each is open
+to correction on review.
 
-- **`ignoreImmediateMutation` keeps its plugin default.** `[...xs].sort()`
-  is idiomatic and mutates only an unreachable temporary. The stated rule,
-  never mutate a `const`, is still enforced either way.
-- **Test-file relaxations are skipped.** There are no tests, and
-  `AGENTS.md` forbids speculative generality.
-- **Two ADRs, not three.** ADR 0006 covers the lint and format toolchain
-  (ESLint plus Prettier plus `eslint-plugin-functional`, against Biome and
-  Oxlint). ADR 0007 covers the pre-commit gate. The individual rule list is
-  design, not architecture, and lives here.
-- **No changelog entry.** `AGENTS.md` puts dev-environment and tooling
-  changes out of scope for the changelog.
+- **`ignoreImmediateMutation` keeps its plugin default.** `[...xs].sort()` is
+  idiomatic and mutates only an unreachable temporary. The stated rule, never
+  mutate a `const`, is still enforced either way.
+- **Test-file relaxations are skipped.** There are no tests, and `AGENTS.md`
+  forbids speculative generality.
+- **Two ADRs, not three.** ADR 0006 covers the lint and format toolchain (ESLint
+  plus Prettier plus `eslint-plugin-functional`, against Biome and Oxlint). ADR
+  0007 covers the pre-commit gate. The individual rule list is design, not
+  architecture, and lives here.
+- **No changelog entry.** `AGENTS.md` puts dev-environment and tooling changes
+  out of scope for the changelog.

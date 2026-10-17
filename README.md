@@ -14,8 +14,8 @@ PoC generative AI pipeline to structure and interact with contract documents.
 
 ## Background
 
-A proof of concept for a small generative AI pipeline that structures
-contract documents and lets people interact with them.
+A proof of concept for a small generative AI pipeline that structures contract
+documents and lets people interact with them.
 
 ## Install
 
@@ -61,8 +61,8 @@ curl -X PUT http://host.containers.internal:<port>/api/inngest \
 - `GET /chat` serves a chat page that streams replies from a local
   [Ollama](https://ollama.com/) model.
 
-The chat page carries its Ollama settings in `public/index.html`;
-nothing server-side reads Ollama environment variables.
+The chat page carries its Ollama settings in `public/index.html`; nothing
+server-side reads Ollama environment variables.
 
 ## Architecture Decisions
 

@@ -8,9 +8,8 @@ decision-makers: William Van Steen
 
 ## Context and Problem Statement
 
-The Elysia API runs on host Bun while everything else runs in
-containers. The Bun version needs exactly one home that the repo tooling
-reads.
+The Elysia API runs on host Bun while everything else runs in containers. The
+Bun version needs exactly one home that the repo tooling reads.
 
 ## Decision Drivers
 
@@ -23,8 +22,8 @@ reads.
 
 ## Decision Outcome
 
-Chosen option: "`packageManager` in `package.json`", because it is the
-one place the repo tooling reads.
+Chosen option: "`packageManager` in `package.json`", because it is the one place
+the repo tooling reads.
 
 ### Consequences
 
@@ -33,5 +32,5 @@ one place the repo tooling reads.
 
 ### Confirmation
 
-`package.json` carries `"packageManager": "bun@<exact>"`; no other
-version files exist in the repository.
+`package.json` carries `"packageManager": "bun@<exact>"`; no other version files
+exist in the repository.

@@ -8,9 +8,8 @@ decision-makers: William Van Steen
 
 ## Context and Problem Statement
 
-Local infra (Inngest dev server, later databases) runs in containers
-while the Elysia API runs on host Bun. The harness should stay simple
-and reproducible.
+Local infra (Inngest dev server, later databases) runs in containers while the
+Elysia API runs on host Bun. The harness should stay simple and reproducible.
 
 ## Decision Drivers
 

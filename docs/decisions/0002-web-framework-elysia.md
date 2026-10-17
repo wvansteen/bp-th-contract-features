@@ -8,8 +8,8 @@ decision-makers: William Van Steen
 
 ## Context and Problem Statement
 
-The pipeline needs a typed webhook plus JSON API layer. Which framework
-hosts it?
+The pipeline needs a typed webhook plus JSON API layer. Which framework hosts
+it?
 
 ## Decision Drivers
 
@@ -25,8 +25,8 @@ hosts it?
 
 ## Decision Outcome
 
-Chosen option: "Elysia on Bun", because its ergonomics fit a typed
-webhook layer; Bun lock-in is accepted.
+Chosen option: "Elysia on Bun", because its ergonomics fit a typed webhook
+layer; Bun lock-in is accepted.
 
 ### Consequences
 

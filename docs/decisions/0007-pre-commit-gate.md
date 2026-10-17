@@ -25,17 +25,17 @@ must therefore run the project's own checks and refuse a commit that fails one.
 ## Decision Outcome
 
 Chosen option: "husky 9 running all four under `set -e`", because lint-staged
-only sees staged files and cannot cover a whole-project typecheck or build,
-and because a hook that rewrites the working tree is itself a mutation.
+only sees staged files and cannot cover a whole-project typecheck or build, and
+because a hook that rewrites the working tree is itself a mutation.
 
 ### Consequences
 
 - Good, because a commit cannot land unless format, lint, typecheck and build
   all pass.
-- Bad, because every commit runs the whole project; there is no staged-file
-  fast path.
+- Bad, because every commit runs the whole project; there is no staged-file fast
+  path.
 
 ### Confirmation
 
-`.husky/pre-commit` starts with `set -e` and a commit with a deliberate `let`
-is rejected.
+`.husky/pre-commit` starts with `set -e` and a commit with a deliberate `let` is
+rejected.

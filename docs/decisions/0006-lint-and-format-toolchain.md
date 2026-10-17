@@ -8,9 +8,9 @@ decision-makers: William Van Steen
 
 ## Context and Problem Statement
 
-Violations of the project's functional style should fail at tool-call time,
-not at review. The locks are behavioural: no `let`, no assignment, no loops,
-no `any`.
+Violations of the project's functional style should fail at tool-call time, not
+at review. The locks are behavioural: no `let`, no assignment, no loops, no
+`any`.
 
 ## Decision Drivers
 
@@ -26,8 +26,8 @@ no `any`.
 ## Decision Outcome
 
 Chosen option: "`eslint-plugin-functional` with Prettier", because it is the
-only option that ships the behavioural locks as supported rules and lets more
-be added.
+only option that ships the behavioural locks as supported rules and lets more be
+added.
 
 ### Consequences
 
@@ -37,5 +37,5 @@ be added.
 
 ### Confirmation
 
-`eslint.config.ts` exists and `bun run lint` exits non-zero on a file
-containing `let x = 1;`.
+`eslint.config.ts` exists and `bun run lint` exits non-zero on a file containing
+`let x = 1;`.

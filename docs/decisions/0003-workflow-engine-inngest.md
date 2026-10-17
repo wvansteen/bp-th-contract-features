@@ -8,8 +8,8 @@ decision-makers: William Van Steen
 
 ## Context and Problem Statement
 
-The pipeline needs a worker engine, starting with a hello-world loop:
-one event from the API, observed in a local UI.
+The pipeline needs a worker engine, starting with a hello-world loop: one event
+from the API, observed in a local UI.
 
 ## Decision Drivers
 
@@ -26,8 +26,8 @@ one event from the API, observed in a local UI.
 
 ## Decision Outcome
 
-Chosen option: "Inngest + inngest-js", because it is the simplest to set
-up and already familiar.
+Chosen option: "Inngest + inngest-js", because it is the simplest to set up and
+already familiar.
 
 ### Consequences
 
@@ -36,5 +36,4 @@ up and already familiar.
 
 ### Confirmation
 
-Event `demo/hello.world` sent from the API completes in the dev UI on
-`:8288`.
+Event `demo/hello.world` sent from the API completes in the dev UI on `:8288`.

@@ -1,12 +1,25 @@
 # Contract Ingest Pipeline Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a contract ingest pipeline that lists files from a Box folder, processes each file's metadata via Inngest events, stores it in Postgres, and exposes it via a list endpoint.
+**Goal:** Build a contract ingest pipeline that lists files from a Box folder,
+processes each file's metadata via Inngest events, stores it in Postgres, and
+exposes it via a list endpoint.
 
-**Architecture:** Elysia on Bun exposes two endpoints. `POST /process-contracts` sends an Inngest event that pages through a Box folder and fans out one `box/process.file` event per document. A single `list-files` run walks every page itself and emits from the run body with `step.sendEvent`, so there is no self-emitted paging event and no cross-event counter. Each `process-file` run reads file metadata and upserts it into Postgres. `GET /contracts` reads all stored metadata. One module (`src/deps.ts`) builds every dependency; everything else receives them as parameters.
+**Architecture:** Elysia on Bun exposes two endpoints. `POST /process-contracts`
+sends an Inngest event that pages through a Box folder and fans out one
+`box/process.file` event per document. A single `list-files` run walks every
+page itself and emits from the run body with `step.sendEvent`, so there is no
+self-emitted paging event and no cross-event counter. Each `process-file` run
+reads file metadata and upserts it into Postgres. `GET /contracts` reads all
+stored metadata. One module (`src/deps.ts`) builds every dependency; everything
+else receives them as parameters.
 
-**Tech Stack:** TypeScript, Bun, Elysia, Inngest v4, `box-node-sdk` v10, Drizzle ORM, postgres.js, Postgres 16
+**Tech Stack:** TypeScript, Bun, Elysia, Inngest v4, `box-node-sdk` v10, Drizzle
+ORM, postgres.js, Postgres 16
 
 **Spec:** `docs/superpowers/specs/2026-10-17-contract-ingest-design.md`
 
@@ -16,9 +29,12 @@
 
 - TypeScript on Bun, mostly functional style
 - No env access outside `src/config/env.ts` and `src/deps.ts`
-- Box auth: developer token via `BOX_APP_TOKEN`, wrapped by `BoxDeveloperTokenAuth` (see ADR-0005)
-- Box folder id: `BOX_FOLDER_ID` env var, injected into handlers — never hardcoded in a function
-- Rate limiting: honor Box's `429` + `Retry-After`; Inngest `rateLimit` on `process-file` (hard), not `throttle`
+- Box auth: developer token via `BOX_APP_TOKEN`, wrapped by
+  `BoxDeveloperTokenAuth` (see ADR-0005)
+- Box folder id: `BOX_FOLDER_ID` env var, injected into handlers — never
+  hardcoded in a function
+- Rate limiting: honor Box's `429` + `Retry-After`; Inngest `rateLimit` on
+  `process-file` (hard), not `throttle`
 - Concurrency: `{ limit: 1 }` on both functions
 - DB table: `documents` with `document_id` (text PK) and `metadata` (jsonb)
 - `maxDocuments` is capped at 1000 by request validation (see Platform Limits)
@@ -28,31 +44,46 @@
 
 These bound the design and must not be exceeded:
 
-- **1,000 steps per function run.** One `list-files` run costs 2 steps per page (one `run`, one `sendEvent`). At page size 100 that caps a run at ~50,000 files, but `maxDocuments` is capped at 1000 for predictable cost.
-- **5,000 events per `step.sendEvent` call.** Page size is 100, so a page fan-out is far under the cap.
+- **1,000 steps per function run.** One `list-files` run costs 2 steps per page
+  (one `run`, one `sendEvent`). At page size 100 that caps a run at ~50,000
+  files, but `maxDocuments` is capped at 1000 for predictable cost.
+- **5,000 events per `step.sendEvent` call.** Page size is 100, so a page
+  fan-out is far under the cap.
 - **Event dedup window is 24 hours** for events carrying an explicit `id`.
 
 ### Delivery Semantics
 
-The pipeline is **at-least-once** and stays correct through three independent layers:
+The pipeline is **at-least-once** and stays correct through three independent
+layers:
 
-1. `step.sendEvent` is a durable step. A retried `list-files` run does not re-send a page whose send already succeeded.
-2. Every emitted event carries a stable `id` (`box/process.file/<fileId>`), so Inngest does not start a second run for the same file within the 24h dedup window.
-3. `process-file` only ever calls `DocumentStore.upsert`, which is conflict-safe on `document_id`.
+1. `step.sendEvent` is a durable step. A retried `list-files` run does not
+   re-send a page whose send already succeeded.
+2. Every emitted event carries a stable `id` (`box/process.file/<fileId>`), so
+   Inngest does not start a second run for the same file within the 24h dedup
+   window.
+3. `process-file` only ever calls `DocumentStore.upsert`, which is conflict-safe
+   on `document_id`.
 
-No layer is assumed to be sufficient alone. This is why the upsert stays even though `sendEvent` removes most duplicate work: the docs are explicit that a failed `sendEvent` batch may have partially succeeded.
+No layer is assumed to be sufficient alone. This is why the upsert stays even
+though `sendEvent` removes most duplicate work: the docs are explicit that a
+failed `sendEvent` batch may have partially succeeded.
 
 ---
 
 ## Review Focus
 
-1. **Document cap:** `maxDocuments` caps the total files processed across all pages, not per page
+1. **Document cap:** `maxDocuments` caps the total files processed across all
+   pages, not per page
 2. **Idempotent upserts:** Re-processing the same file must not duplicate rows
-3. **Error propagation:** Box API failures in `process-file` are retried by Inngest; a Box `404` is non-retriable
-4. **Pagination boundary:** When `totalCount` is not a multiple of page size, the last page still processes correctly
+3. **Error propagation:** Box API failures in `process-file` are retried by
+   Inngest; a Box `404` is non-retriable
+4. **Pagination boundary:** When `totalCount` is not a multiple of page size,
+   the last page still processes correctly
 5. **Empty folder:** Listing an empty folder must not hang or error
-6. **Non-file entries:** Folders and web links never produce a `box/process.file` event
-7. **No duplicate fan-out on retry:** A retried `list-files` run must not re-send an already-sent page
+6. **Non-file entries:** Folders and web links never produce a
+   `box/process.file` event
+7. **No duplicate fan-out on retry:** A retried `list-files` run must not
+   re-send an already-sent page
 
 ---
 
@@ -74,7 +105,8 @@ No layer is assumed to be sufficient alone. This is why the upsert stays even th
 
 - Consumes: nothing
 - Produces:
-  - `loadEnv(): Env` where `Env = { boxAppToken: string; boxFolderId: string; databaseUrl: string }`
+  - `loadEnv(): Env` where
+    `Env = { boxAppToken: string; boxFolderId: string; databaseUrl: string }`
   - `createDbClient(databaseUrl: string) => { db: DrizzleDb; client: Sql }`
   - `documents` Drizzle table
   - `bun run typecheck` script
@@ -96,8 +128,8 @@ postgres:
 
 - [ ] **Step 2: Add dependencies**
 
-Run: `bun add drizzle-orm postgres box-node-sdk`
-Run: `bun add -d drizzle-kit @types/bun typescript`
+Run: `bun add drizzle-orm postgres box-node-sdk` Run:
+`bun add -d drizzle-kit @types/bun typescript`
 
 - [ ] **Step 3: Add tsconfig.json and a typecheck script**
 
@@ -132,7 +164,8 @@ Add to `package.json` scripts:
 "db:migrate": "bun --env-file=.env x drizzle-kit migrate"
 ```
 
-`db:migrate` passes `--env-file` because `drizzle-kit migrate` needs `DATABASE_URL` to connect.
+`db:migrate` passes `--env-file` because `drizzle-kit migrate` needs
+`DATABASE_URL` to connect.
 
 - [ ] **Step 4: Write the failing test for env loading**
 
@@ -187,12 +220,12 @@ describe("loadEnv", () => {
 });
 ```
 
-This sets and clears the vars explicitly rather than relying on a developer's local `.env`, so the test is deterministic.
+This sets and clears the vars explicitly rather than relying on a developer's
+local `.env`, so the test is deterministic.
 
 - [ ] **Step 5: Run test to verify it fails**
 
-Run: `bun test src/config/env.test.ts`
-Expected: FAIL — module not found
+Run: `bun test src/config/env.test.ts` Expected: FAIL — module not found
 
 - [ ] **Step 6: Implement `loadEnv`**
 
@@ -220,8 +253,7 @@ export function loadEnv(): Env {
 
 - [ ] **Step 7: Run test to verify it passes**
 
-Run: `bun test src/config/env.test.ts`
-Expected: PASS
+Run: `bun test src/config/env.test.ts` Expected: PASS
 
 - [ ] **Step 8: Implement Drizzle schema and client**
 
@@ -252,11 +284,13 @@ export function createDbClient(databaseUrl: string) {
 }
 ```
 
-`client` is returned so the composition root can close the pool. Default `postgres.js` pool is `max: 10`; only one client is ever created (Task 3).
+`client` is returned so the composition root can close the pool. Default
+`postgres.js` pool is `max: 10`; only one client is ever created (Task 3).
 
 - [ ] **Step 9: Create `drizzle.config.ts`**
 
-`drizzle-kit` needs this file for both `generate` and `migrate`. `dialect` is mandatory.
+`drizzle-kit` needs this file for both `generate` and `migrate`. `dialect` is
+mandatory.
 
 Create `drizzle.config.ts`:
 
@@ -273,13 +307,14 @@ export default defineConfig({
 });
 ```
 
-Reading `process.env` here is a deliberate exception to the no-env-outside-the-composition-root rule: this file is a `drizzle-kit` CLI config, never imported by the running app.
+Reading `process.env` here is a deliberate exception to the
+no-env-outside-the-composition-root rule: this file is a `drizzle-kit` CLI
+config, never imported by the running app.
 
 - [ ] **Step 10: Generate and run initial migration**
 
-Run: `bun run db:generate`
-Run: `bun run db:migrate`
-Expected: `drizzle/` created with an initial migration; `documents` table exists
+Run: `bun run db:generate` Run: `bun run db:migrate` Expected: `drizzle/`
+created with an initial migration; `documents` table exists
 
 - [ ] **Step 11: Update `.env.example`**
 
@@ -295,8 +330,7 @@ DATABASE_URL=postgresql://bp:bp@localhost:5432/contracts
 
 - [ ] **Step 12: Typecheck and commit**
 
-Run: `bun run typecheck`
-Expected: PASS
+Run: `bun run typecheck` Expected: PASS
 
 ```bash
 git add package.json compose.yaml tsconfig.json drizzle.config.ts .env.example \
@@ -326,7 +360,8 @@ Note: `.env` is gitignored, so it is never staged.
 
 - [ ] **Step 1: Read the SDK surface before writing code**
 
-The SDK is `box-node-sdk` v10, whose API differs from older releases. Confirm these before coding:
+The SDK is `box-node-sdk` v10, whose API differs from older releases. Confirm
+these before coding:
 
 ```bash
 grep -n "getFolderItems" node_modules/box-node-sdk/lib-esm/managers/folders.d.ts
@@ -336,15 +371,19 @@ grep -n "totalCount" node_modules/box-node-sdk/lib-esm/schemas/items.d.ts
 
 Expected shapes:
 
-- `client.folders.getFolderItems(folderId, { queryParams: { offset, limit } })` → `Items`
+- `client.folders.getFolderItems(folderId, { queryParams: { offset, limit } })`
+  → `Items`
 - `client.files.getFileById(fileId)` → `FileFull`
-- `Items.totalCount` — **camelCase**. The raw REST API's `total_count` is renamed by the SDK. Do not use `total_count`.
-- `Items.entries` is `Array<FileFull | FolderMini | WebLink>` — a union discriminated by `type`, so entries may be folders or web links.
+- `Items.totalCount` — **camelCase**. The raw REST API's `total_count` is
+  renamed by the SDK. Do not use `total_count`.
+- `Items.entries` is `Array<FileFull | FolderMini | WebLink>` — a union
+  discriminated by `type`, so entries may be folders or web links.
 - Auth is `new BoxClient({ auth: new BoxDeveloperTokenAuth({ token }) })`.
 
 - [ ] **Step 2: Define the port and types**
 
-Create `src/box/document-shape.ts`... actually put the types in `client.ts` directly:
+Create `src/box/document-shape.ts`... actually put the types in `client.ts`
+directly:
 
 ```ts
 export type BoxFileEntry = { id: string; type: string; name: string };
@@ -406,15 +445,19 @@ export function createBoxClient({ token }: { token: string }): BoxClientPort {
 }
 ```
 
-The SDK handles auth headers, URL building, and `429` backoff internally. Do not re-add any of that.
+The SDK handles auth headers, URL building, and `429` backoff internally. Do not
+re-add any of that.
 
 - [ ] **Step 4: Decide the test strategy deliberately**
 
-Do **not** unit-test `createBoxClient` by mocking `fetch`. The SDK imports `node-fetch`, not the global, so `spyOn(globalThis, "fetch")` does not intercept its calls and the test would silently pass without exercising anything.
+Do **not** unit-test `createBoxClient` by mocking `fetch`. The SDK imports
+`node-fetch`, not the global, so `spyOn(globalThis, "fetch")` does not intercept
+its calls and the test would silently pass without exercising anything.
 
 Instead:
 
-- Task 3 unit-tests the handlers against a hand-written `BoxClientPort` fake. That is where the logic lives.
+- Task 3 unit-tests the handlers against a hand-written `BoxClientPort` fake.
+  That is where the logic lives.
 - Task 6 verifies the real adapter end-to-end against the live API.
 
 - [ ] **Step 5: Commit**
@@ -703,8 +746,8 @@ describe("list-files replay safety", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `bun test src/functions/list-files.test.ts`
-Expected: FAIL — module not found
+Run: `bun test src/functions/list-files.test.ts` Expected: FAIL — module not
+found
 
 - [ ] **Step 3: Implement `list-files`**
 
@@ -767,7 +810,9 @@ export async function listFilesHandler(
 }
 ```
 
-`processed` and `offset` are local variables. They never appear in an event payload, so no counter is threaded across events and nothing depends on the caller keeping them consistent.
+`processed` and `offset` are local variables. They never appear in an event
+payload, so no counter is threaded across events and nothing depends on the
+caller keeping them consistent.
 
 #### Why a local variable is enough
 
@@ -796,9 +841,9 @@ deterministic. That also means the step IDs must be derived from those same
 deterministic values — `page-${offset}` and `emit-${offset}` are stable for a
 given run.
 
-Anything non-deterministic placed outside a step would break replay: a clock,
-a random value, or a counter not derived from step results would make the
-re-entry path diverge.
+Anything non-deterministic placed outside a step would break replay: a clock, a
+random value, or a counter not derived from step results would make the re-entry
+path diverge.
 
 The old design needed the counter in the event payload for a different reason:
 each page was a **separate run** started by a self-emitted event. Separate runs
@@ -953,8 +998,11 @@ export function createDrizzleDocumentStore(db: DrizzleDb): DocumentStore {
 
 Both Drizzle calls follow the real 0.45 API:
 
-- `onConflictDoUpdate` takes `target` as a **column object** (`documents.document_id`), not a string, and `set` as a plain object, not a method.
-- The select builder is awaitable directly. There is no `.all()` method — `await db.select({...}).from(...)` is the documented form.
+- `onConflictDoUpdate` takes `target` as a **column object**
+  (`documents.document_id`), not a string, and `set` as a plain object, not a
+  method.
+- The select builder is awaitable directly. There is no `.all()` method —
+  `await db.select({...}).from(...)` is the documented form.
 - Selection fields must be column objects, not strings.
 
 - [ ] **Step 6: Implement `process-file`**
@@ -1013,7 +1061,8 @@ export async function processFileHandler(
 
 - [ ] **Step 7: Run tests to verify they pass**
 
-Run: `bun test src/functions/list-files.test.ts src/functions/process-file.test.ts`
+Run:
+`bun test src/functions/list-files.test.ts src/functions/process-file.test.ts`
 Expected: PASS
 
 - [ ] **Step 8: Create the single composition root**
@@ -1041,7 +1090,8 @@ export type InngestEventSender = {
 };
 ```
 
-Both `src/inngest.ts` and `src/index.ts` import from here, so exactly one Postgres pool and one Box client exist per process.
+Both `src/inngest.ts` and `src/index.ts` import from here, so exactly one
+Postgres pool and one Box client exist per process.
 
 - [ ] **Step 9: Wire up the Inngest functions**
 
@@ -1103,18 +1153,29 @@ export const processFileFn = inngest.createFunction(
 
 Three details that matter, each verified against the installed SDK:
 
-- **Trigger shape is `triggers: [{ event: "..." }]`.** `inngest@4.23.0` types declare `triggers?: InngestFunction.Trigger<string>[]`, and the working `hello.ts` in this repo already uses the array form. Passing a bare `{ event: ... }` as the second argument does not typecheck.
-- **`rateLimit`, not `throttle`.** Inngest's own docs describe `throttle` as soft, warning it "may lead to a large backlog"; `rateLimit` is the hard control.
-- **`step` is narrowed at the boundary, not typed as `any`.** Inngest's `step.run` signature resolves through a middleware-transform conditional that cannot be satisfied structurally by a hand-written interface, so the adapter above asserts the one fact that matters — that `Jsonify` is an identity for our JSON-safe payloads. Attempting to pass `step` directly fails to compile.
+- **Trigger shape is `triggers: [{ event: "..." }]`.** `inngest@4.23.0` types
+  declare `triggers?: InngestFunction.Trigger<string>[]`, and the working
+  `hello.ts` in this repo already uses the array form. Passing a bare
+  `{ event: ... }` as the second argument does not typecheck.
+- **`rateLimit`, not `throttle`.** Inngest's own docs describe `throttle` as
+  soft, warning it "may lead to a large backlog"; `rateLimit` is the hard
+  control.
+- **`step` is narrowed at the boundary, not typed as `any`.** Inngest's
+  `step.run` signature resolves through a middleware-transform conditional that
+  cannot be satisfied structurally by a hand-written interface, so the adapter
+  above asserts the one fact that matters — that `Jsonify` is an identity for
+  our JSON-safe payloads. Attempting to pass `step` directly fails to compile.
 
 - [ ] **Step 10: Delete the hello-world demo**
 
-Delete `src/functions/hello.ts` and `src/send.ts`. Leaving them in place means `src/send.ts` sends `demo/hello.world` to an event with no registered trigger, so it looks like it works while doing nothing. Task 5 removes the matching README line.
+Delete `src/functions/hello.ts` and `src/send.ts`. Leaving them in place means
+`src/send.ts` sends `demo/hello.world` to an event with no registered trigger,
+so it looks like it works while doing nothing. Task 5 removes the matching
+README line.
 
 - [ ] **Step 11: Typecheck and commit**
 
-Run: `bun run typecheck`
-Expected: PASS
+Run: `bun run typecheck` Expected: PASS
 
 ```bash
 git add src/db/document-store.ts src/functions/ src/deps.ts src/inngest.ts
@@ -1244,8 +1305,7 @@ describe("GET /contracts", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `bun test src/routes/contracts.test.ts`
-Expected: FAIL — module not found
+Run: `bun test src/routes/contracts.test.ts` Expected: FAIL — module not found
 
 - [ ] **Step 3: Implement `createContractsRoutes`**
 
@@ -1289,7 +1349,9 @@ export function createContractsRoutes(deps: {
 }
 ```
 
-`body` is inferred from the `t.Object` schema, so there is no `body as {...}` cast. Invalid input is rejected by Elysia with `422`, so the handler needs no error branch.
+`body` is inferred from the `t.Object` schema, so there is no `body as {...}`
+cast. Invalid input is rejected by Elysia with `422`, so the handler needs no
+error branch.
 
 - [ ] **Step 4: Wire up `src/index.ts`**
 
@@ -1324,15 +1386,14 @@ console.log(
 );
 ```
 
-The pool is closed on shutdown, and `deps.ts` is imported rather than rebuilding clients.
+The pool is closed on shutdown, and `deps.ts` is imported rather than rebuilding
+clients.
 
 - [ ] **Step 5: Run tests and typecheck**
 
-Run: `bun test src/routes/contracts.test.ts`
-Expected: PASS
+Run: `bun test src/routes/contracts.test.ts` Expected: PASS
 
-Run: `bun run typecheck`
-Expected: PASS
+Run: `bun run typecheck` Expected: PASS
 
 - [ ] **Step 6: Commit**
 
@@ -1361,11 +1422,13 @@ git commit -m "feat: add contract routes"
 
 Run: `ls docs/decisions/`
 
-`0000` through `0004` are taken, so the next free number is `0005`. Do not reuse `0001`.
+`0000` through `0004` are taken, so the next free number is `0005`. Do not reuse
+`0001`.
 
 - [ ] **Step 2: Write the ADR**
 
-Create `docs/decisions/0005-box-api-authentication.md`, following `docs/decisions/adr-template.md`:
+Create `docs/decisions/0005-box-api-authentication.md`, following
+`docs/decisions/adr-template.md`:
 
 ```markdown
 ---
@@ -1380,8 +1443,8 @@ decision-makers: William Van Steen
 
 The ingest pipeline calls the Box API to list folder items and read file
 metadata. Local development runs against a personal Box account containing a
-folder shared in from an enterprise account, so the auth method must work
-across that boundary and must not require enterprise app configuration.
+folder shared in from an enterprise account, so the auth method must work across
+that boundary and must not require enterprise app configuration.
 
 ## Considered Options
 
