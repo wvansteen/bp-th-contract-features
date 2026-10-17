@@ -340,7 +340,7 @@ git commit -m "docs: describe the chat page and its Ollama requirement"
 - [ ] **Step 1: Confirm the branch is coherent**
 
 Run: `git log --oneline main..HEAD` and `git status --short`
-Expected: four focused commits (Tasks 1, 2, 4, and the plan), clean working tree.
+Expected: five focused commits against `main` — two plan commits plus one each from Tasks 1, 2, and 4 — and a clean working tree.
 
 - [ ] **Step 2: Push**
 
