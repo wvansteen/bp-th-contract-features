@@ -43,7 +43,13 @@ alongside** the code that depends on it.
   `docs/decisions/NNNN-short-title.md` using the next free number.
 - Fill it in and set its `status` (`proposed`, `accepted`, `rejected`, …).
 - To change a past decision, keep the old ADR and mark it `superseded by
-  ADR-NNNN`; never delete history.
+  ADR-NNNN`; never delete history. Supersede chains are for merged
+  decisions only — while the branch is unmerged, fix the ADR in place.
+- Keep ADRs lean: 2–3 sentences of context, only in-scope drivers and
+  options, the outcome with a one-line why, terse consequences, and a
+  one-line confirmation as a file or command check. An ADR records the
+  decision, not the chain of reasoning behind it: no speculative
+  generality, no support matrices, no re-argued pros and cons.
 
 If no meaningful choice is being made, **skip this step** and move on.
 
@@ -61,7 +67,18 @@ Two updates go with every feature:
   standard-readme compliant (see below).
 - Add a bullet to the `[Unreleased]` section of `CHANGELOG.md` under the matching
   Keep a Changelog category: `Added`, `Changed`, `Deprecated`, `Removed`,
-  `Fixed`, or `Security`.
+  `Fixed`, or `Security`. Keep bullets short, user-facing summaries of
+  shipped application features, not implementation detail. Process
+  (including changes to `AGENTS.md` itself), dev environment, and ADR
+  material are out of scope for the changelog.
+
+## Scope
+
+Everything is out of scope by default. Solve the narrowest problem at
+hand: no CI support, no compatibility matrices, no speculative
+generality. If a task balloons into custom scope or extra tooling
+support, stop — the requirements or the task description were wrong, not
+the scope. Narrow the task instead of widening the work.
 
 ## Where things live
 
@@ -75,9 +92,9 @@ Two updates go with every feature:
   [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `docs/decisions/` — [MADR](https://adr.github.io/madr/) v4 ADRs.
 - `LICENSE` — MIT.
-- No git remote is configured yet. **Do not invent URLs** (repo, issues,
-  changelog compare links). Add them when hosting is decided, together with a
-  hosting ADR.
+- The git remote is `origin`
+  (`git@github.com:wvansteen/bp-th-contract-features.git`). **Do not invent
+  URLs** (issues, changelog compare links); add them only when they exist.
 
 ## Verification
 
@@ -88,3 +105,13 @@ output — evidence first, not confidence.
   Contents, and the changelog entry exists.
 - Code changes: run the build, typecheck, and tests once tooling exists.
 - Commit small, focused changes with clear messages.
+
+## Integration
+
+Integration is always branch and PR. Push the work to a feature branch on
+`origin` and open a pull request against `main`; never push directly to
+`main`.
+
+After the plan is implemented, handle each round of review feedback as
+its own commit and push it separately — one feedback round, one commit,
+one push. Never batch unrelated feedback rounds into a single commit.
