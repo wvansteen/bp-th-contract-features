@@ -108,9 +108,11 @@ running app never imports.
 - `listFiles({ folderId, offset, limit })` → `{ entries, totalCount }`
 - `describeFile({ fileId })` → full file metadata
 
-Auth, URL building, and `429` backoff are the SDK's job and are not
-reimplemented. The adapter only narrows the response types. Note the SDK
-camel-cases the REST response, so `total_count` is `totalCount`.
+Auth and URL building are the SDK's job and are not reimplemented. The SDK's
+own retry policy does not read the `Retry-After` header, so honoring Box's
+header is our job (see Rate Limiting). The adapter only narrows the response
+types. Note the SDK camel-cases the REST response, so `total_count` is
+`totalCount`.
 
 The folder id comes from `BOX_FOLDER_ID` and is injected; no function hardcodes
 it.
@@ -132,11 +134,12 @@ limit. `rateLimit` is lossy: Inngest skips runs once the limit is hit. `throttle
 enqueues them. A document must never be dropped, so the queueing behavior is the
 one wanted here.
 
-Box's own limit is enforced by the SDK's backoff. When Box returns `429`, the
-Box client raises Inngest's `RetryAfterError` using the `Retry-After` header so
-the run sleeps exactly as long as Box asked. A `404` raises `NonRetriableError`
-— a deleted or moved file will not reappear, so retrying would burn attempts and
-leave a permanently red run.
+Box's own limit is honored by `process-file`'s describe step. When Box returns
+`429`, `process-file` raises Inngest's `RetryAfterError` with the wait parsed
+from the `Retry-After` header so the run sleeps exactly as long as Box asked.
+A `404` raises
+`NonRetriableError` — a deleted or moved file will not reappear, so retrying
+would burn attempts and leave a permanently red run.
 
 No ceiling is asserted here; the SDK and Box's published limits are the source
 of truth.

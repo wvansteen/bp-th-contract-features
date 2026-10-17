@@ -499,8 +499,7 @@ export function createBoxClient({ token }: { token: string }): BoxClientPort {
 }
 ```
 
-The SDK handles auth headers, URL building, and `429` backoff internally. Do not
-re-add any of that.
+The SDK handles auth headers and URL building internally. Do not re-add any of that. It does not read Box's `Retry-After` header — honoring that header is `process-file`'s job (see its `429` mapping below).
 
 - [ ] **Step 4: Decide the test strategy deliberately**
 
