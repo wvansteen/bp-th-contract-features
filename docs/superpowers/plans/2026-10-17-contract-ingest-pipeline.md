@@ -34,12 +34,15 @@ ORM, postgres.js, Postgres 16
 - Rate limiting: honor Box's `429` + `Retry-After`; Inngest `throttle` on `process-file`, which queues rather than discards
 - Concurrency: `{ limit: 1 }` on both functions
 - DB table: `documents` with `document_id` (text PK) and `metadata` (jsonb)
-- `maxDocuments` is capped at 1000 by request validation (see Platform Limits)
+- `maxDocuments` is capped at 1000 by request validation, for predictable cost and a bounded run
 - Typecheck must pass before any commit (`bun run typecheck`)
 
-### Platform Limits (Inngest, verified)
+### Platform Limits
 
-These bound the design and must not be exceeded:
+Server-side Inngest limits, from Inngest's published usage-limits and
+idempotency documentation. They are not enforced by the SDK or by the local dev
+server, so they cannot be verified from the installed package. They bound the
+design and must not be exceeded in production:
 
 - **1,000 steps per function run.** One `list-files` run costs 2 steps per page
   (one `run`, one `sendEvent`). At page size 100 that caps a run at ~50,000
@@ -90,7 +93,7 @@ failed `sendEvent` batch may have partially succeeded.
 
 - Modify: `package.json`
 - Modify: `compose.yaml`
-- Modify: `.env.example`
+- Create: `.env.example`
 - Create: `tsconfig.json`
 - Create: `drizzle.config.ts`
 - Create: `src/config/env.ts`
@@ -113,20 +116,34 @@ failed `sendEvent` batch may have partially succeeded.
 Add a `postgres` service alongside the existing Inngest dev service:
 
 ```yaml
-postgres:
-  image: postgres:16-alpine
-  environment:
-    POSTGRES_USER: bp
-    POSTGRES_PASSWORD: bp
-    POSTGRES_DB: contracts
-  ports:
-    - "5432:5432"
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bp
+      POSTGRES_PASSWORD: bp
+      POSTGRES_DB: contracts
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bp -d contracts"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
 ```
+
+The healthcheck is load-bearing. `podman compose up -d` returns before Postgres
+accepts connections, so a `db:migrate` issued straight afterwards fails
+intermittently on a cold image and reads as a plan bug.
 
 - [ ] **Step 2: Add dependencies**
 
-Run: `bun add drizzle-orm postgres box-node-sdk` Run:
-`bun add -d drizzle-kit @types/bun typescript`
+Run: `bun add drizzle-orm postgres box-node-sdk`
+Run: `bun add -d drizzle-kit @types/bun`
+Run: `bun add -d typescript@5.9.3`
+
+`typescript` is pinned because `bun run typecheck` gates every commit. Without a
+pin, a `bun add -d typescript` resolves to whatever major ships that month,
+and a new major can change diagnostics on unchanged source.
 
 - [ ] **Step 3: Add tsconfig.json and a typecheck script**
 
@@ -315,7 +332,7 @@ created with an initial migration; `documents` table exists
 
 - [ ] **Step 11: Update `.env.example`**
 
-`.env` is gitignored — only `.env.example` is tracked. Add the two new vars:
+`.env` is gitignored and `.env.example` is currently untracked, so this step creates the file with both new vars:
 
 ```
 # Box folder to ingest from.
@@ -344,7 +361,6 @@ Note: `.env` is gitignored, so it is never staged.
 **Files:**
 
 - Create: `src/box/client.ts`
-- Create: `src/box/document-shape.ts`
 
 **Interfaces:**
 
@@ -377,8 +393,7 @@ Expected shapes:
 
 - [ ] **Step 2: Define the port and types**
 
-Create `src/box/document-shape.ts`... actually put the types in `client.ts`
-directly:
+Create `src/box/client.ts` with the types above it:
 
 ```ts
 export type BoxFileEntry = { id: string; type: string; name: string };
@@ -1052,15 +1067,15 @@ export async function processFileHandler(
         throw new NonRetriableError(`Box file ${params.fileId} not found`);
       }
 
-      // Box tells us exactly how long to wait via Retry-After.
-      // Box sends Retry-After in seconds; RetryAfterError reads a bare number
-      // as milliseconds. Its message argument comes first.
+      // Box sends Retry-After as either delta-seconds or an HTTP-date.
+      // `parseInt` on a date yields NaN, and a NaN `retryAfter` makes
+      // RetryAfterError retry immediately, turning a backoff into a hot loop.
+      // RetryAfterError takes milliseconds and its message argument first.
       const retryAfter = error.responseInfo.headers["retry-after"];
       if (status === 429 && retryAfter) {
-        throw new RetryAfterError(
-          `Box throttled file ${params.fileId}`,
-          parseInt(retryAfter, 10) * 1000,
-        );
+        const seconds = Number.parseInt(retryAfter, 10);
+        const waitMs = Number.isFinite(seconds) ? seconds * 1000 : 60_000;
+        throw new RetryAfterError(`Box throttled file ${params.fileId}`, waitMs);
       }
 
       throw error;
@@ -1276,11 +1291,8 @@ describe("POST /process-contracts", () => {
     expect((await app.handle(post({ maxDocuments: 1.5 }))).status).toBe(422);
   });
 
-  it("returns 422 when maxDocuments exceeds the run step budget", async () => {
-    const app = createContractsRoutes({
-      inngest: fakeInngest(),
-      store: fakeStore([]),
-    });
+  it("returns 422 when maxDocuments exceeds the per-request cap", async () => {
+    const app = createContractsRoutes({ inngest: fakeInngest(), store: fakeStore([]) });
     expect((await app.handle(post({ maxDocuments: 1001 }))).status).toBe(422);
   });
 });
@@ -1383,19 +1395,20 @@ const app = new Elysia()
   .use(createContractsRoutes({ inngest, store: documentStore }))
   .listen(3000);
 
-process.on("SIGINT", async () => {
-  await pgPool.end();
-  await app.stop();
-  process.exit(0);
-});
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, async () => {
+    await pgPool.end();
+    await app.stop();
+    process.exit(0);
+  });
+}
 
 console.log(
   `Elysia listening on http://${app.server?.hostname}:${app.server?.port}`,
 );
 ```
 
-The pool is closed on shutdown, and `deps.ts` is imported rather than rebuilding
-clients.
+The pool is closed on Ctrl-C and on `SIGTERM`, since a container stop or supervisor shutdown sends `SIGTERM`, and `deps.ts` is imported rather than rebuilding clients.
 
 - [ ] **Step 5: Run tests and typecheck**
 
@@ -1610,12 +1623,22 @@ Add under `[Unreleased]` -> `### Added`:
 
 - [ ] **Step 6: Update AGENTS.md**
 
-Add to the Style section:
+AGENTS.md has no `## Style` heading. Append a bullet to the `Style:` paragraph
+that sits inside `## Project`, which currently reads:
+
+```
+Style: mostly functional, leaning on a managed effects system where it earns its
+keep. Logging as a side effect is an accepted exception for this PoC.
+```
+
+Add:
 
 ```markdown
 - **Dependency injection over env access.** Never read env vars or construct
   low-level clients inside a function. Build them at the composition root
-  (`src/deps.ts`) and inject them. Pass capabilities as parameters, not globals.
+  (`src/deps.ts`) and inject them. Pass capabilities as parameters, not
+  globals. `drizzle.config.ts` is the one exception: it is a `drizzle-kit`
+  CLI file the running app never imports.
 ```
 
 - [ ] **Step 7: Commit**
