@@ -136,8 +136,8 @@ one wanted here.
 
 Box's own limit is honored by `process-file`'s describe step. When Box returns
 `429`, `process-file` raises Inngest's `RetryAfterError` with the wait parsed
-from the `Retry-After` header so the run sleeps exactly as long as Box asked.
-A `404` raises
+from the `Retry-After` header: the delta-seconds Box sent, with a 60-second
+fallback when the header is an HTTP-date. A `404` raises
 `NonRetriableError` — a deleted or moved file will not reappear, so retrying
 would burn attempts and leave a permanently red run.
 
@@ -146,9 +146,11 @@ of truth.
 
 ### Platform Limits
 
-Inngest allows 1,000 steps per function run and 5,000 events per `sendEvent`
-call. `list-files` spends 2 steps per page of 100, so `maxDocuments` is capped
-at 1000 by request validation, keeping a single run well inside the budget.
+Inngest's published usage limits include 1,000 steps per function run and
+5,000 events per `sendEvent` call. They are server-side limits, not enforced by
+the SDK or the local dev server. `list-files` spends 2 steps per page of 100,
+so the step ceiling is never the binding constraint here: `maxDocuments` is
+capped at 1000 by request validation to bound one run's fan-out and cost.
 
 ## Tech Stack
 
