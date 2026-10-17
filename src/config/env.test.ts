@@ -6,8 +6,13 @@ const KEYS = ["BOX_APP_TOKEN", "BOX_FOLDER_ID", "DATABASE_URL"] as const;
 // Snapshotted once at module load. Bun runs every test file in one process and
 // shares `process.env` between them, so a restore that captures a value written
 // by an earlier test hands a later file a fake token instead of the ambient one.
-const saved: Record<string, string | undefined> = {};
-for (const key of KEYS) saved[key] = process.env[key];
+// A frozen copy, never reassigned. The restore is asserted against `AMBIENT`
+// rather than `saved`, because `saved` is what the buggy version reassigns: an
+// assertion against it matches the fake to itself and passes either way.
+const AMBIENT: Record<string, string | undefined> = {};
+for (const key of KEYS) AMBIENT[key] = process.env[key];
+
+const saved: Record<string, string | undefined> = { ...AMBIENT };
 
 afterEach(() => {
   for (const key of KEYS) {
@@ -47,6 +52,6 @@ describe("loadEnv", () => {
   });
 
   it("restores the ambient environment for other test files", () => {
-    expect(process.env.BOX_APP_TOKEN).toBe(saved.BOX_APP_TOKEN);
+    expect(process.env.BOX_APP_TOKEN).toBe(AMBIENT.BOX_APP_TOKEN);
   });
 });
