@@ -510,9 +510,8 @@ its calls and the test would silently pass without exercising anything.
 
 Instead:
 
-- Task 3 unit-tests the handlers against a hand-written `BoxClientPort` fake.
-  That is where the logic lives.
-- Task 6 verifies the real adapter end-to-end against the live API.
+- Task 3 unit-tests the handlers against a hand-written `BoxClientPort` fake. That is where the logic lives.
+- Task 7 verifies the real adapter end-to-end against the live API.
 
 - [ ] **Step 5: Commit**
 
@@ -1831,9 +1830,10 @@ table one definition shared by the adapter and the migrations.
 ### Confirmation
 
 Task 5's `src/db/document-store.test.ts` runs against a real Postgres. It
-upserts `documentId` "1" three times and "2" once, then asserts two rows remain
-and that "1" carries the newest metadata; a second test re-upserts and asserts
-`listAll` returns the same order both times. Run `bun run dev:setup`, then
+truncates `documents`, then upserts `documentId` "1" twice and "2" once and
+asserts two rows remain with "1" carrying the newest metadata. A second test
+re-upserts "1" and asserts `listAll` returns the same order as before, and that
+the order is sorted. Run `bun run dev:setup`, then
 `bun run db:migrate`, then `bun test src/db/document-store.test.ts`.
 
 ## More Information
@@ -2015,7 +2015,7 @@ emitted event carries `id: "box/process.file/<fileId>"`, and Inngest suppresses 
 second run for an id it has already seen inside its 24-hour window.
 
 This step verifies the event-id layer only. It does not exercise the upsert,
-because the suppressed runs mean `upsert` never executes twice; Task 6 covers
+because the suppressed runs mean `upsert` never executes twice; Task 5 covers
 that against a real database instead.
 
 - [ ] **Step 8: Verify no duplicate rows**
