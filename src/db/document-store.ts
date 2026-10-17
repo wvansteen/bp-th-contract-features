@@ -24,6 +24,9 @@ export function createDrizzleDocumentStore(db: DrizzleDb): DocumentStore {
     },
 
     async listAll() {
+      // Ordered explicitly. Postgres returns rows in an unspecified order, and
+      // an upserted row moves, so two identical ingests would otherwise produce
+      // different `/contracts` responses.
       const rows = await db
         .select({
           document_id: documents.document_id,

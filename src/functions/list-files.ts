@@ -24,6 +24,8 @@ export async function listFilesHandler(
       box.listFiles({ folderId, offset, limit: PAGE_SIZE }),
     );
 
+    // Box folder listings mix files, subfolders, and web links. Only files
+    // have metadata worth storing, and only files can be described by id.
     const files = page.entries.filter((entry) => entry.type === "file");
     const batch = files.slice(0, maxDocuments - processed);
 
@@ -40,8 +42,11 @@ export async function listFilesHandler(
 
     processed += batch.length;
 
+    // The cap was reached part-way through this page.
     if (batch.length < files.length) break;
 
+    // Last page. `totalCount` counts every entry type, so compare against the
+    // offset we have walked rather than against `files.length`.
     if (offset + PAGE_SIZE >= page.totalCount) break;
 
     offset += PAGE_SIZE;

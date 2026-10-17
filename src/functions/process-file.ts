@@ -20,10 +20,18 @@ export async function processFileHandler(
       if (!(error instanceof BoxApiError)) throw error;
       const status = error.responseInfo.statusCode;
 
+      // A deleted or moved file will never exist again. Retrying just burns
+      // three attempts and leaves a permanently red run.
       if (status === 404) {
         throw new NonRetriableError(`Box file ${params.fileId} not found`);
       }
 
+      // Box sends Retry-After as either delta-seconds or an HTTP-date.
+      // `parseInt` on a date yields NaN, and the guard is not optional: the
+      // RetryAfterError constructor divides by 1000 and throws a plain Error
+      // when the result is not finite, which would turn Box's backoff into an
+      // immediate retry. RetryAfterError takes milliseconds and its message
+      // argument first, and stores the value back as a string of seconds.
       const retryAfter = error.responseInfo.headers["retry-after"];
       if (status === 429 && retryAfter) {
         const seconds = Number.parseInt(retryAfter, 10);
