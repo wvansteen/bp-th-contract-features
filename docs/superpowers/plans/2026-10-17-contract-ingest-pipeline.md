@@ -1606,7 +1606,90 @@ git commit -m "feat: add contract routes"
 
 ---
 
-### Task 5: Documentation and ADRs
+### Task 5: Document store verification against real Postgres
+
+The upsert's conflict handling and the ordering of `listAll` are the two
+properties Review Focus #2 depends on, and neither is reachable through the
+fake-backed unit tests. They run here instead.
+
+**Files:**
+- Create: `src/db/document-store.test.ts`
+
+**Interfaces:**
+- Consumes: `createDrizzleDocumentStore` (Task 3), `documents` (Task 1)
+- Produces: verified conflict-safe upsert and stable ordering
+
+- [ ] **Step 1: Write the test**
+
+Create `src/db/document-store.test.ts`:
+
+```ts
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { sql } from "drizzle-orm";
+import { createDbClient } from "./client";
+import { createDrizzleDocumentStore } from "./document-store";
+
+const databaseUrl =
+  process.env.TEST_DATABASE_URL ?? "postgresql://bp:bp@localhost:5432/contracts";
+
+const { db, client } = createDbClient(databaseUrl);
+const store = createDrizzleDocumentStore(db);
+
+beforeAll(async () => {
+  await db.execute(sql`TRUNCATE documents`);
+});
+
+afterAll(async () => {
+  await client.end();
+});
+
+describe("createDrizzleDocumentStore", () => {
+  it("upserts without duplicating rows", async () => {
+    await store.upsert({ documentId: "1", metadata: { name: "first.pdf" } });
+    await store.upsert({ documentId: "1", metadata: { name: "renamed.pdf" } });
+    await store.upsert({ documentId: "2", metadata: { name: "second.pdf" } });
+
+    const rows = await store.listAll();
+
+    expect(rows).toHaveLength(2);
+    const one = rows.find((r) => r.documentId === "1");
+    expect(one?.metadata).toEqual({ name: "renamed.pdf" });
+  });
+
+  it("orders by document_id, and re-upserting does not move a row", async () => {
+    const before = (await store.listAll()).map((r) => r.documentId);
+
+    await store.upsert({ documentId: "1", metadata: { name: "renamed.pdf" } });
+
+    const after = (await store.listAll()).map((r) => r.documentId);
+
+    expect(after).toEqual(before);
+    expect([...after].sort()).toEqual(after);
+  });
+});
+```
+
+- [ ] **Step 2: Run against Postgres**
+
+Run: `bun run dev:setup`
+Run: `bun run db:migrate`
+Run: `bun test src/db/document-store.test.ts`
+Expected: PASS (2 tests)
+
+If the second test fails on the ordering assertion, `.orderBy` is missing from
+`listAll`. Without it Postgres returns rows in an unspecified order and an
+upserted row moves.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/db/document-store.test.ts
+git commit -m "test: cover document store upsert and ordering against Postgres"
+```
+
+---
+
+### Task 6: Documentation and ADRs
 
 **Files:**
 
@@ -1617,8 +1700,7 @@ git commit -m "feat: add contract routes"
 - Modify: `AGENTS.md`
 
 **Interfaces:**
-
-- Consumes: everything from Tasks 1-4
+- Consumes: everything from Tasks 1-5
 - Produces: shipped feature with complete docs
 
 - [ ] **Step 1: Confirm the next free ADR number**
@@ -1677,10 +1759,11 @@ folder.
 ### Confirmation
 
 Every Box request carries `Authorization: Bearer $BOX_APP_TOKEN`, set by
-`BoxDeveloperTokenAuth` in `src/box/client.ts`. Confirmed by the end-to-end
-verification step that triggers a real ingest against the live API and reads
-the completed `page-0` step in the Inngest dev UI. The unit tests do not check
-this, because they run against a `BoxClientPort` fake and never reach the SDK.
+`BoxDeveloperTokenAuth` in `src/box/client.ts`. Confirmed by `grep -q "BoxDeveloperTokenAuth" src/box/client.ts`, which fails
+if the adapter stops constructing the SDK's developer-token auth. The live check
+is Task 7 Step 4, which reads the completed `page-0` step in the Inngest dev UI
+after a real ingest. The unit tests cannot check this: they run against a
+`BoxClientPort` fake and never reach the SDK.
 
 ## More Information
 
@@ -1742,9 +1825,11 @@ table one definition shared by the adapter and the migrations.
 
 ### Confirmation
 
-`src/db/document-store.test.ts` upserts the same `documentId` three times
-against a real Postgres and asserts one row remains with the latest metadata.
-Run it with `bun test src/db/document-store.test.ts`.
+Task 5's `src/db/document-store.test.ts` runs against a real Postgres. It
+upserts `documentId` "1" three times and "2" once, then asserts two rows remain
+and that "1" carries the newest metadata; a second test re-upserts and asserts
+`listAll` returns the same order both times. Run `bun run dev:setup`, then
+`bun run db:migrate`, then `bun test src/db/document-store.test.ts`.
 
 ## More Information
 
@@ -1852,94 +1937,17 @@ Add:
   CLI file the running app never imports.
 ```
 
+Also correct the `Current state:` paragraph near the top of `AGENTS.md`, which
+still claims the repository is documentation-only. It went stale in Task 1 and
+this task is the docs task, so fix it here: the repository now has application
+code under `src/`, a `package.json`, a `compose.yaml`, a `tsconfig.json`, and a
+generated `drizzle/` migration.
+
 - [ ] **Step 7: Commit**
 
 ```bash
 git add docs/decisions/0005-box-api-authentication.md docs/decisions/0006-data-model-and-database-driver.md README.md CHANGELOG.md AGENTS.md
 git commit -m "docs: add Box auth ADR and update README, CHANGELOG, AGENTS.md"
-```
-
----
-
-### Task 6: Document store verification against real Postgres
-
-The upsert's conflict handling and the ordering of `listAll` are the two
-properties Review Focus #2 depends on, and neither is reachable through the
-fake-backed unit tests. They run here instead.
-
-**Files:**
-- Create: `src/db/document-store.test.ts`
-
-**Interfaces:**
-- Consumes: `createDrizzleDocumentStore` (Task 3), `documents` (Task 1)
-- Produces: verified conflict-safe upsert and stable ordering
-
-- [ ] **Step 1: Write the test**
-
-Create `src/db/document-store.test.ts`:
-
-```ts
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { sql } from "drizzle-orm";
-import { createDbClient } from "./client";
-import { createDrizzleDocumentStore } from "./document-store";
-
-const databaseUrl =
-  process.env.TEST_DATABASE_URL ?? "postgresql://bp:bp@localhost:5432/contracts";
-
-const { db, client } = createDbClient(databaseUrl);
-const store = createDrizzleDocumentStore(db);
-
-beforeAll(async () => {
-  await db.execute(sql`TRUNCATE documents`);
-});
-
-afterAll(async () => {
-  await client.end();
-});
-
-describe("createDrizzleDocumentStore", () => {
-  it("upserts without duplicating rows", async () => {
-    await store.upsert({ documentId: "1", metadata: { name: "first.pdf" } });
-    await store.upsert({ documentId: "1", metadata: { name: "renamed.pdf" } });
-    await store.upsert({ documentId: "2", metadata: { name: "second.pdf" } });
-
-    const rows = await store.listAll();
-
-    expect(rows).toHaveLength(2);
-    const one = rows.find((r) => r.documentId === "1");
-    expect(one?.metadata).toEqual({ name: "renamed.pdf" });
-  });
-
-  it("orders by document_id, and re-upserting does not move a row", async () => {
-    const before = (await store.listAll()).map((r) => r.documentId);
-
-    await store.upsert({ documentId: "1", metadata: { name: "renamed.pdf" } });
-
-    const after = (await store.listAll()).map((r) => r.documentId);
-
-    expect(after).toEqual(before);
-    expect([...after].sort()).toEqual(after);
-  });
-});
-```
-
-- [ ] **Step 2: Run against Postgres**
-
-Run: `bun run dev:setup`
-Run: `bun run db:migrate`
-Run: `bun test src/db/document-store.test.ts`
-Expected: PASS (2 tests)
-
-If the second test fails on the ordering assertion, `.orderBy` is missing from
-`listAll`. Without it Postgres returns rows in an unspecified order and an
-upserted row moves.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add src/db/document-store.test.ts
-git commit -m "test: cover document store upsert and ordering against Postgres"
 ```
 
 ---
