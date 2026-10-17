@@ -14,8 +14,6 @@ and this project adheres to
 - ADR process ([MADR](https://adr.github.io/madr/)) with template and founding
   decision (ADR 0000).
 - `AGENTS.md` agent development loop and repo conventions.
-- Hello-world pipeline: event from the Elysia API, observed in the local Inngest
-  UI.
 - Full-page chat at `/chat` that streams replies from a local Ollama model.
 - Contract ingest pipeline: `POST /process-contracts` pages through a Box
   folder and processes each document's metadata via Inngest events;

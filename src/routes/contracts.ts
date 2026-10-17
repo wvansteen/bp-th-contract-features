@@ -2,9 +2,10 @@ import { Elysia, status, t } from "elysia";
 import type { InngestEventSender } from "../deps";
 import type { DocumentStore } from "../db/document-store";
 
-// Inngest allows 1,000 steps per run. list-files spends 2 steps per page of
-// 100, so this bound keeps a single run far inside the budget and keeps the
-// cost of one request predictable.
+// list-files emits one event per file and stops once `maxDocuments` files
+// have been handled, so this cap bounds one run's fan-out at 1,000 per-file
+// events. At 100 entries per page, reaching that cap takes 10 pages when the
+// pages contain only files.
 const MAX_DOCUMENTS_PER_RUN = 1000;
 
 export function createContractsRoutes(deps: {

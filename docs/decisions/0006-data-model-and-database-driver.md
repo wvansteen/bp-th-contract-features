@@ -31,7 +31,9 @@ handlers stay testable without a database.
 Chosen option: "Drizzle ORM with postgres.js", because the conflict-safe upsert
 the design depends on is expressed directly as
 `onConflictDoUpdate({ target, set })`, and a typed schema gives the `documents`
-table one definition shared by the adapter and the migrations.
+table one definition shared by the adapter and the migrations. The `metadata`
+column stores the Box SDK response verbatim, so `{value}`-wrapped dates and the
+`rawData` shadow copy are kept unmodified.
 
 ### Consequences
 
@@ -41,15 +43,20 @@ table one definition shared by the adapter and the migrations.
   schema file.
 * Bad, because Drizzle's generic query types are intricate, so the adapter is
   the only place in the codebase that touches them.
+* Bad, because each file is sent with the stable event id
+  `box/process.file/<fileId>` and Inngest deduplicates that id for 24 hours, so a
+  file whose processing exhausts its retries cannot be re-run automatically until
+  the window passes (manual replay or wait).
 
 ### Confirmation
 
 Task 5's `src/db/document-store.test.ts` runs against a real Postgres. It
-truncates `documents`, then upserts `documentId` "1" twice and "2" once and
-asserts two rows remain with "1" carrying the newest metadata. A second test
-re-upserts "1" and asserts `listAll` returns the same order as before, and that
-the order is sorted. Run `bun run dev:setup`, then
-`bun run db:migrate`, then `bun test src/db/document-store.test.ts`.
+creates and migrates a throwaway database, so it never truncates or writes the
+developer's `contracts` data, then drops that database. It upserts `documentId`
+"1" twice and "2" once and asserts two rows remain with "1" carrying the newest
+metadata. A second test re-upserts "1" and asserts `listAll` returns the same
+order as before, and that the order is sorted. Run `bun run dev:setup`, then
+`bun test src/db/document-store.test.ts`; `podman compose down` cleans up.
 
 ## More Information
 
