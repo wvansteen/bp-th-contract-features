@@ -3,3 +3,40 @@ idiomatic_version_file_enable_tools = ["bun"]
 
 [env]
 _.file = ".env"
+
+[tasks."dev:setup"]
+description = "Start the local stack and print its URLs"
+run = """
+podman compose up -d --wait
+echo "Inngest UI: http://127.0.0.1:$(podman compose port inngest 8288 | cut -d: -f2)"
+"""
+
+[tasks."dev:teardown"]
+description = "Stop the local stack"
+run = "podman compose down"
+
+[tasks.dev]
+description = "Run the Elysia API on an auto-selected port"
+depends = ["dev:setup"]
+run = """
+export INNGEST_DEV="http://127.0.0.1:$(podman compose port inngest 8288 | cut -d: -f2)"
+LOG=$(mktemp)
+bun --hot src/index.ts 2>&1 | tee "$LOG" &
+for _ in $(seq 100); do
+  grep -q "Elysia listening" "$LOG" && break
+  sleep 0.2
+done
+LINE=$(grep -m 1 "Elysia listening" "$LOG")
+PORT=${LINE##*:}
+curl -sX PUT "http://host.containers.internal:$PORT/api/inngest" --resolve "host.containers.internal:$PORT:127.0.0.1"
+echo
+wait
+"""
+
+[tasks."dev:send"]
+description = "Send the demo event to the local stack"
+depends = ["dev:setup"]
+run = """
+export INNGEST_DEV="http://127.0.0.1:$(podman compose port inngest 8288 | cut -d: -f2)"
+exec bun run src/send.ts
+"""

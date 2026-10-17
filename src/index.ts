@@ -16,6 +16,6 @@ const app = new Elysia()
       assets: "node_modules/deep-chat/dist",
     }),
   )
-  .listen(3000);
+  .listen(0);
 
 console.log(`Elysia listening on http://${app.server?.hostname}:${app.server?.port}`);
