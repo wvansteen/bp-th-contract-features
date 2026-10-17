@@ -45,9 +45,10 @@ table one definition shared by the adapter and the migrations.
 ### Confirmation
 
 Task 5's `src/db/document-store.test.ts` runs against a real Postgres. It
-upserts `documentId` "1" three times and "2" once, then asserts two rows remain
-and that "1" carries the newest metadata; a second test re-upserts and asserts
-`listAll` returns the same order both times. Run `bun run dev:setup`, then
+truncates `documents`, then upserts `documentId` "1" twice and "2" once and
+asserts two rows remain with "1" carrying the newest metadata. A second test
+re-upserts "1" and asserts `listAll` returns the same order as before, and that
+the order is sorted. Run `bun run dev:setup`, then
 `bun run db:migrate`, then `bun test src/db/document-store.test.ts`.
 
 ## More Information
