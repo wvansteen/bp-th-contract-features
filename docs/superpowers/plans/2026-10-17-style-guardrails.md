@@ -21,8 +21,9 @@ TypeScript on Bun.
 
 ## Global Constraints
 
-- Every lock rule is `error`. Lint runs as `eslint . --max-warnings 0
---no-inline-config`. Warnings are not an enforcement mechanism.
+- Every lock rule is `error`. Lint runs as
+  `eslint . --max-warnings 0 --no-inline-config`. Warnings are not an
+  enforcement mechanism.
 - `proseWrap` is pinned to `"preserve"` and must not change.
 - Lock rules never relax. The framework relaxations section may hold
   non-lock rules only.
@@ -269,8 +270,9 @@ locks section. Every rule below is `"error"`:
   `@typescript-eslint/no-unsafe-return`,
   `@typescript-eslint/no-unsafe-function-type`
 - no route around a type error:
-  `@typescript-eslint/ban-ts-comment` with `["error", { "ts-ignore": true,
-"ts-expect-error": true }]`, `@typescript-eslint/no-non-null-assertion`,
+  `@typescript-eslint/ban-ts-comment` with
+  `["error", { "ts-ignore": true, "ts-expect-error": true }]`,
+  `@typescript-eslint/no-non-null-assertion`,
   `@typescript-eslint/no-unsafe-type-assertion`
 - `no-console`: `"off"`
 
