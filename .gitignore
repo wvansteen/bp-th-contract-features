@@ -27,7 +27,3 @@ logs/
 .DS_Store
 Thumbs.db
 *.swp
-
-# Superpowers scratch
-docs/superpowers/
-.superpowers
