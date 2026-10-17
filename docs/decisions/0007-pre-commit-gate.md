@@ -8,7 +8,8 @@ decision-makers: William Van Steen
 
 ## Context and Problem Statement
 
-The locks only help if a commit cannot be made without satisfying them.
+The locks only help if a commit cannot be made without satisfying them. A gate
+must therefore run the project's own checks and refuse a commit that fails one.
 
 ## Decision Drivers
 
@@ -23,10 +24,9 @@ The locks only help if a commit cannot be made without satisfying them.
 
 ## Decision Outcome
 
-Chosen option: "husky pre-commit running format, lint, typecheck and build",
-because lint-staged only sees staged files and cannot cover a whole-project
-typecheck or build, and because a hook that rewrites the working tree is
-itself a mutation.
+Chosen option: "husky 9 running all four under `set -e`", because lint-staged
+only sees staged files and cannot cover a whole-project typecheck or build,
+and because a hook that rewrites the working tree is itself a mutation.
 
 ### Consequences
 
