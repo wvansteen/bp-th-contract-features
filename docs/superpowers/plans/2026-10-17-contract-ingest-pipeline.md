@@ -1648,6 +1648,12 @@ metadata. Local development runs against a personal Box account containing a
 folder shared in from an enterprise account, so the auth method must work across
 that boundary and must not require enterprise app configuration.
 
+## Decision Drivers
+
+* Works across a personal Box account and a folder shared from an enterprise one
+* No enterprise app configuration or key management
+* Sufficient for a proof of concept
+
 ## Considered Options
 
 - Developer token
@@ -1705,6 +1711,13 @@ returns. The ingest path is at-least-once, so re-processing a file must not
 create a second row. Access goes through a narrow `DocumentStore` port so the
 handlers stay testable without a database.
 
+## Decision Drivers
+
+* A conflict-safe upsert, since ingest is at-least-once and a file can be
+  processed more than once
+* One schema definition shared by the adapter and the migrations
+* Tests that do not need a database
+
 ## Considered Options
 
 * Drizzle ORM with postgres.js
@@ -1746,10 +1759,16 @@ Table of Contents listing them. Edit the existing sections — do not append new
 ones, or the document ends up with two `## Usage` headings and a Table of
 Contents that disagrees with the body.
 
+The Table of Contents also names a `Contributing` section that has never
+existed in the body. It is pre-existing breakage, but it is in the file this
+task edits and AGENTS.md requires a docs change to leave headings matching the
+Table of Contents. Add the section rather than dropping the entry, since
+`AGENTS.md` is the contribution guide and standard-readme expects the heading.
+
 Replace the `## Install` section body with:
 
-````markdown
-- [Podman](https://podman.io/) for the Inngest dev server.
+```markdown
+- [Podman](https://podman.io/) for the Inngest dev server and Postgres.
 - [Bun](https://bun.sh/) `1.2.23` (pinned in `package.json`).
 
 ```sh
@@ -1790,7 +1809,18 @@ curl http://localhost:3000/contracts
 ````
 
 The `bun run src/send.ts` line is removed along with `src/send.ts` in Task 3.
-Leave the Table of Contents unchanged — the headings it names still exist.
+
+Add a `## Contributing` section between `## Architecture Decisions` and
+`## License`, so the heading the Table of Contents already names exists:
+
+```markdown
+## Contributing
+
+Agent and contributor instructions live in [`AGENTS.md`](AGENTS.md).
+```
+
+Every other heading the Table of Contents names already exists, so those entries
+stay as they are.
 
 - [ ] **Step 5: Update CHANGELOG.md**
 
