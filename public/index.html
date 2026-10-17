@@ -28,6 +28,10 @@
           model: "llama3.2:latest",
           // Keep the whole conversation in the request body.
           maxMessages: -1,
+          // The component defaults this to false, which makes Ollama send one
+          // complete object instead of NDJSON, so the reply renders all at
+          // once. Set it explicitly or replies stop appearing token by token.
+          stream: true,
         },
       };
       chat.introMessage = { text: "Ask me anything. I am running locally on Ollama." };
