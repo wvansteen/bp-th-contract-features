@@ -181,6 +181,16 @@ Add to `package.json` scripts:
 `db:migrate` passes `--env-file` because `drizzle-kit migrate` needs
 `DATABASE_URL` to connect.
 
+Also change the existing `dev:setup` script so the healthcheck is not decorative:
+
+```json
+"dev:setup": "podman compose up -d --wait"
+```
+
+Without `--wait`, `podman compose up -d` returns as soon as the containers start
+and ignores the healthcheck, so the `db:migrate` that follows races Postgres on
+a cold image. `--wait` blocks until every service reports healthy.
+
 - [ ] **Step 4: Write the failing test for env loading**
 
 Create `src/config/env.test.ts`:
@@ -190,7 +200,17 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { loadEnv } from "./env";
 
 const KEYS = ["BOX_APP_TOKEN", "BOX_FOLDER_ID", "DATABASE_URL"] as const;
-const saved: Record<string, string | undefined> = {};
+
+// Snapshotted once at module load. Bun runs every test file in one process and
+// shares `process.env` between them, so a restore that captures a value written
+// by an earlier test hands a later file a fake token instead of the ambient one.
+// A frozen copy, never reassigned. The restore is asserted against `AMBIENT`
+// rather than `saved`, because `saved` is what the buggy version reassigns: an
+// assertion against it matches the fake to itself and passes either way.
+const AMBIENT: Record<string, string | undefined> = {};
+for (const key of KEYS) AMBIENT[key] = process.env[key];
+
+const saved: Record<string, string | undefined> = { ...AMBIENT };
 
 afterEach(() => {
   for (const key of KEYS) {
@@ -200,10 +220,7 @@ afterEach(() => {
 });
 
 function clearEnv() {
-  for (const key of KEYS) {
-    saved[key] = process.env[key];
-    delete process.env[key];
-  }
+  for (const key of KEYS) delete process.env[key];
 }
 
 describe("loadEnv", () => {
@@ -230,6 +247,10 @@ describe("loadEnv", () => {
 
       expect(() => loadEnv()).toThrow(key);
     }
+  });
+
+  it("restores the ambient environment for other test files", () => {
+    expect(process.env.BOX_APP_TOKEN).toBe(AMBIENT.BOX_APP_TOKEN);
   });
 });
 ```
@@ -332,9 +353,22 @@ created with an initial migration; `documents` table exists
 
 - [ ] **Step 11: Update `.env.example`**
 
-`.env` is gitignored and `.env.example` is currently untracked, so this step creates the file with both new vars:
+`.env` is gitignored and `.env.example` is untracked, so this step writes the
+whole file. It must list every variable the app reads, not only the two new
+ones: a developer who copies this file to `.env` and starts the app gets a hard
+`BOX_APP_TOKEN is required` without it, and without `INNGEST_DEV` the SDK
+targets Inngest Cloud instead of the local dev server.
 
 ```
+# Environment variables expected by this project.
+# Copy this file to `.env` and fill in the real values. `.env` is gitignored.
+
+# Run the Inngest SDK against the local Inngest dev server.
+INNGEST_DEV=1
+
+# Box API app token used by the Box integration.
+BOX_APP_TOKEN=
+
 # Box folder to ingest from.
 BOX_FOLDER_ID=
 
