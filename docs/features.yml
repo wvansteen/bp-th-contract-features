@@ -1,0 +1,78 @@
+# Contract feature schema for the Lake County contract work.
+# Each feature has a name (the key a value is extracted under) and a
+# description (what the value means and the rules extraction follows).
+
+features:
+  - name: counterparty_name
+    description: >-
+      The organization the County is contracting with, as named in the
+      agreement's opening paragraph. The County itself and any subcontractors
+      are not the counterparty.
+
+  - name: counterparty_address
+    description: >-
+      The counterparty's principal business address as stated in the agreement.
+      Usually found only in the opening paragraph or the signature block.
+
+  - name: effective_date
+    description: >-
+      The date contractual obligations begin. Where the agreement defers to
+      execution, as the Lake County template does ("the date this Agreement is
+      signed by the last party"), record the signature-derived date.
+
+  - name: expiration_date
+    description: >-
+      The date the agreement ends, stated in the document or derived from the
+      term length. Renewal options never move this date; they are captured in
+      renewal_terms.
+
+  - name: basis
+    description: >-
+      The shape of the money, one of fixed_fee, not_to_exceed, or
+      rate_schedule_only. It says how to read yearly_cost and total_cost.
+
+  - name: yearly_cost
+    description: >-
+      The dollar amount stated per year, such as a not-to-exceed task-order cap
+      per fiscal year. Blank when the document states no yearly figure.
+
+  - name: total_cost
+    description: >-
+      The dollar amount stated as the total contract value, such as a fixed
+      project fee. Blank whenever the document does not state one; it is never
+      derived from yearly_cost, renewal options, or term length.
+
+  - name: category
+    description: >-
+      A closed enum describing the commercial shape of the deal rather than its
+      subject matter: professional_services, technology_services,
+      equipment_maintenance, goods, construction, or lease.
+
+  - name: purpose_summary
+    description: >-
+      One or two sentences on what the work actually is, taken from the executed
+      agreement's scope of work. The human-readable counterpart to category.
+
+  - name: contract_id
+    description: >-
+      The County's identifier for this agreement, such as 23173-5, 24216-1, or
+      141301. The join key to purchasing, purchase order, and payment systems.
+
+  - name: solicitation_id
+    description: >-
+      The identifier of the solicitation the agreement was awarded under, such
+      as 23173, 24216, or 000289-APR2018. Groups sibling agreements from one
+      procurement event. Blank when the agreement descends from a cooperative
+      vehicle instead of a County solicitation.
+
+  - name: renewal_terms
+    description: >-
+      The renewal options and the action they require: how many periods, their
+      length, who must give notice, and by when. This is where a silent lapse
+      would be caught.
+
+  - name: payment_terms
+    description: >-
+      How and when the County pays: purchase order and invoice mechanics plus
+      the County's payment clock, such as "within 30 days after receipt and
+      approval of invoice".

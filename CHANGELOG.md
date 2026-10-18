@@ -26,3 +26,10 @@ and this project adheres to
   smart feature prompts, with the document PDF sent to the model per feature;
   the results are stored on the document record and returned by
   `GET /contracts`.
+
+### TODO
+
+- Potential feature, not implemented: `compliance_obligations`, extracting the
+  certifications and legal flowdowns a contract carries (debarment, lobbying
+  disclosures, prevailing wages, insurance minimums). Deferred to keep the first
+  feature set small.
