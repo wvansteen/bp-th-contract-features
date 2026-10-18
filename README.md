@@ -17,7 +17,9 @@ PoC generative AI pipeline to structure and interact with contract documents.
 ## Background
 
 A proof of concept for a small generative AI pipeline that structures contract
-documents and lets people interact with them.
+documents and lets people interact with them. Processing stores each document's
+PDF and classifies it against the smart features with one model call per
+feature.
 
 ## Install
 
@@ -83,7 +85,7 @@ curl -X POST http://localhost:<port>/process-contracts \
   -d '{"maxDocuments": 10}'
 ```
 
-List stored document metadata:
+List stored document metadata and smart feature results:
 
 ```sh
 curl http://localhost:<port>/contracts

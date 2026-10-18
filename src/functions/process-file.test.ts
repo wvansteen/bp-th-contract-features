@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { NonRetriableError, RetryAfterError } from "inngest";
 import type { BoxClientPort } from "../box/client";
-import type { DocumentStore } from "../db/document-store";
+import type { DocumentStore, StoredDocument } from "../db/document-store";
 import { processFileHandler, type ProcessFileSteps } from "./process-file";
 
 const passthroughSteps: ProcessFileSteps = {
@@ -13,11 +13,14 @@ const noopStore: DocumentStore = {
   listAll: () => Promise.resolve([]),
 };
 
-function boxDescribing(file: Record<string, unknown>): BoxClientPort {
+function boxWithContent(
+  file: Record<string, unknown>,
+  bytes: Uint8Array,
+): BoxClientPort {
   return {
     listFiles: () => Promise.reject(new Error("not used")),
     describeFile: () => Promise.resolve(file),
-    downloadFile: () => Promise.reject(new Error("not used")),
+    downloadFile: () => Promise.resolve(bytes),
   };
 }
 
@@ -45,18 +48,126 @@ function retryAfterOf(error: unknown): string | undefined {
 describe("process-file", () => {
   it("describes the file and upserts it", async () => {
     const result = await processFileHandler(
-      boxDescribing({ id: "777", name: "contract.pdf", size: 5000 }),
+      boxWithContent(
+        { id: "777", name: "contract.pdf", size: 5000 },
+        new Uint8Array([1]),
+      ),
       passthroughSteps,
       noopStore,
+      () => Promise.resolve({}),
       { fileId: "123" },
     );
 
-    expect(result.documentId).toBe("123");
-    expect(result.metadata.name).toBe("contract.pdf");
-    expect(result.upserted).toEqual({
+    expect(result).toEqual({
       documentId: "123",
-      metadata: result.metadata,
+      metadata: { id: "777", name: "contract.pdf", size: 5000 },
+      smartFeatures: {},
+      upserted: {
+        documentId: "123",
+        metadata: { id: "777", name: "contract.pdf", size: 5000 },
+      },
     });
+  });
+
+  const rowAllowed = (row: StoredDocument): boolean =>
+    row.document.length === 3 &&
+    (Object.keys(row.smartFeatures).length === 0
+      ? true
+      : row.smartFeatures["Payment Terms"] === "20220920103554.pdf:3");
+
+  const stagedStore: DocumentStore = {
+    upsert: (row) =>
+      rowAllowed(row)
+        ? Promise.resolve(undefined)
+        : Promise.reject(new Error("upsert received a partial row")),
+    listAll: () => Promise.resolve([]),
+  };
+
+  it("downloads the file and stores the smart feature results", async () => {
+    const result = await processFileHandler(
+      boxWithContent(
+        { id: "777", name: "20220920103554.pdf" },
+        new Uint8Array([1, 2, 3]),
+      ),
+      passthroughSteps,
+      stagedStore,
+      ({ filename, document }) =>
+        Promise.resolve({ "Payment Terms": `${filename}:${document.length}` }),
+      { fileId: "123" },
+    );
+
+    expect(result).toEqual({
+      documentId: "123",
+      metadata: { id: "777", name: "20220920103554.pdf" },
+      smartFeatures: { "Payment Terms": "20220920103554.pdf:3" },
+      upserted: {
+        documentId: "123",
+        metadata: { id: "777", name: "20220920103554.pdf" },
+      },
+    });
+  });
+
+  it("stores the document even when no features are configured", async () => {
+    const result = await processFileHandler(
+      boxWithContent(
+        { id: "777", name: "contract.pdf" },
+        new Uint8Array([1, 2, 3]),
+      ),
+      passthroughSteps,
+      stagedStore,
+      () => Promise.resolve({}),
+      { fileId: "123" },
+    );
+
+    expect(result).toEqual({
+      documentId: "123",
+      metadata: { id: "777", name: "contract.pdf" },
+      smartFeatures: {},
+      upserted: {
+        documentId: "123",
+        metadata: { id: "777", name: "contract.pdf" },
+      },
+    });
+  });
+
+  it("does not write smart features when classification fails", () => {
+    const store: DocumentStore = {
+      upsert: (row) =>
+        Object.keys(row.smartFeatures).length === 0
+          ? Promise.resolve(undefined)
+          : Promise.reject(new Error("smart features must not be written")),
+      listAll: () => Promise.resolve([]),
+    };
+
+    expect(
+      processFileHandler(
+        boxWithContent(
+          { id: "777", name: "contract.pdf" },
+          new Uint8Array([1, 2, 3]),
+        ),
+        passthroughSteps,
+        store,
+        () => Promise.reject(new Error("model unavailable")),
+        { fileId: "123" },
+      ),
+    ).rejects.toThrow("model unavailable");
+  });
+
+  it("skips non-PDF files without writing a record", async () => {
+    const store: DocumentStore = {
+      upsert: () => Promise.reject(new Error("no record must be written")),
+      listAll: () => Promise.resolve([]),
+    };
+
+    const result = await processFileHandler(
+      boxWithContent({ id: "777", name: "notes.txt" }, new Uint8Array([1])),
+      passthroughSteps,
+      store,
+      () => Promise.reject(new Error("classify must not run")),
+      { fileId: "123" },
+    );
+
+    expect(result).toEqual({ documentId: "123", skipped: "not-a-pdf" });
   });
 });
 
@@ -66,6 +177,7 @@ describe("process-file error mapping", () => {
       boxFailing(boxApiFailure(404)),
       passthroughSteps,
       noopStore,
+      () => Promise.resolve({}),
       { fileId: "1" },
     ).catch((failure: unknown) => failure);
 
@@ -77,6 +189,7 @@ describe("process-file error mapping", () => {
       boxFailing(boxApiFailure(429, { "retry-after": "120" })),
       passthroughSteps,
       noopStore,
+      () => Promise.resolve({}),
       { fileId: "1" },
     ).catch((failure: unknown) => failure);
 
@@ -91,6 +204,7 @@ describe("process-file error mapping", () => {
       ),
       passthroughSteps,
       noopStore,
+      () => Promise.resolve({}),
       { fileId: "1" },
     ).catch((failure: unknown) => failure);
 
@@ -104,6 +218,7 @@ describe("process-file error mapping", () => {
       boxFailing(failure),
       passthroughSteps,
       noopStore,
+      () => Promise.resolve({}),
       { fileId: "1" },
     ).catch((thrown: unknown) => thrown);
 
@@ -116,6 +231,7 @@ describe("process-file error mapping", () => {
       boxFailing(failure),
       passthroughSteps,
       noopStore,
+      () => Promise.resolve({}),
       { fileId: "1" },
     ).catch((thrown: unknown) => thrown);
 
@@ -127,6 +243,7 @@ describe("process-file error mapping", () => {
       boxFailing(new TypeError("socket hang up")),
       passthroughSteps,
       noopStore,
+      () => Promise.resolve({}),
       { fileId: "1" },
     ).catch((failure: unknown) => failure);
 

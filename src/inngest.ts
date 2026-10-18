@@ -1,5 +1,10 @@
 import { Inngest } from "inngest";
-import { boxClient, boxFolderId, documentStore } from "./deps";
+import {
+  boxClient,
+  boxFolderId,
+  documentStore,
+  smartFeatureClassifier,
+} from "./deps";
 import { listFilesHandler } from "./functions/list-files";
 import { processFileHandler } from "./functions/process-file";
 
@@ -47,8 +52,12 @@ export const processFileFn = inngest.createFunction(
     retries: 3,
   },
   async ({ event, step }) => {
-    await processFileHandler(boxClient, step, documentStore, {
-      fileId: readFileId(event.data),
-    });
+    await processFileHandler(
+      boxClient,
+      step,
+      documentStore,
+      smartFeatureClassifier,
+      { fileId: readFileId(event.data) },
+    );
   },
 );

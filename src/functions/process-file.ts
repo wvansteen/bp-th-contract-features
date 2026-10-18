@@ -1,12 +1,18 @@
 import { NonRetriableError, RetryAfterError } from "inngest";
 import type { BoxClientPort } from "../box/client";
 import type { DocumentStore, StoredDocument } from "../db/document-store";
+import type { ClassifySmartFeatures } from "../smart-features/classify";
 
-export type ProcessFileResult = {
+export type SkippedDocument = { documentId: string; skipped: "not-a-pdf" };
+
+export type ProcessedDocument = {
   documentId: string;
   metadata: Record<string, unknown>;
+  smartFeatures: Record<string, string>;
   upserted: Pick<StoredDocument, "documentId" | "metadata">;
 };
+
+export type ProcessFileResult = SkippedDocument | ProcessedDocument;
 
 export type ProcessFileSteps = {
   run(id: string, fn: () => Promise<unknown>): Promise<unknown>;
@@ -72,6 +78,7 @@ export async function processFileHandler(
   box: BoxClientPort,
   steps: ProcessFileSteps,
   store: DocumentStore,
+  classify: ClassifySmartFeatures,
   params: { fileId: string },
 ): Promise<ProcessFileResult> {
   const described = await steps.run("describe-file", () =>
@@ -85,14 +92,19 @@ export async function processFileHandler(
   }
 
   const metadata = described;
+  const filename =
+    typeof metadata.name === "string" ? metadata.name : params.fileId;
+
+  if (!filename.toLowerCase().endsWith(".pdf")) {
+    console.warn(`Skipping non-PDF file ${params.fileId} (${filename})`);
+    return { documentId: params.fileId, skipped: "not-a-pdf" };
+  }
+
+  const document = await box.downloadFile({ fileId: params.fileId });
 
   const upserted = await steps.run("upsert", async () => {
     const written = { documentId: params.fileId, metadata };
-    await store.upsert({
-      ...written,
-      document: new Uint8Array(),
-      smartFeatures: {},
-    });
+    await store.upsert({ ...written, document, smartFeatures: {} });
     return written;
   });
 
@@ -102,5 +114,13 @@ export async function processFileHandler(
     );
   }
 
-  return { documentId: params.fileId, metadata, upserted };
+  const smartFeatures = await classify({ filename, document });
+  await store.upsert({
+    documentId: params.fileId,
+    metadata,
+    document,
+    smartFeatures,
+  });
+
+  return { documentId: params.fileId, metadata, smartFeatures, upserted };
 }
