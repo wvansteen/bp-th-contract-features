@@ -140,29 +140,16 @@ that one instead.
 `.env.example` becomes exactly:
 
 ```
-# Values the running app and tooling read from the environment. `.env` is
-# gitignored and loaded by mise; on Vercel the same names are set in the
-# project's environment settings. Names and documentation only: never commit
-# real values.
+# Names only: local values come from the mise tasks.
 
-# Box API app token used by the Box integration.
 BOX_APP_TOKEN=
-
-# Box folder to ingest from.
 BOX_FOLDER_ID=
-
-# Postgres URL the app connects with. On Vercel: Neon's pooled URL with
-# sslmode=require. Locally the dev and db:migrate tasks inject the compose
-# stack's URL at task start, so this stays empty here.
 DATABASE_URL=
 
-# Postgres URL migrations run against. On Vercel: Neon's unpooled URL, used by
-# the build step. Locally the db:migrate task injects the compose stack's URL.
-# Falls back to DATABASE_URL when unset.
+# Migration target.
 DATABASE_URL_UNPOOLED=
 
-# Inngest production keys. Set on Vercel only: local runs talk to the Inngest
-# dev server through INNGEST_DEV, which the dev task sets.
+# Vercel only; local uses INNGEST_DEV.
 INNGEST_EVENT_KEY=
 INNGEST_SIGNING_KEY=
 ```
