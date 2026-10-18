@@ -11,6 +11,7 @@ describe("createApp", () => {
     const response = await app.handle(new Request("http://localhost/"));
     const body = await response.text();
     expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
     expect(body).toContain("<deep-chat");
     expect(body).toContain("Contract Investigation");
   });
@@ -42,7 +43,7 @@ describe("createApp", () => {
   test("the page script obeys the repo style locks", async () => {
     const body = await Bun.file("public/index.html").text();
     expect(body).not.toMatch(
-      /<script[^>]*>[\s\S]*?\b(let |var |for\(|while\(|do\()/,
+      /<script[^>]*>[\s\S]*?\b(let |var |for\s*\(|while\s*\(|do\s*\{)/,
     );
   });
 
@@ -52,6 +53,14 @@ describe("createApp", () => {
     const body = await response.text();
     expect(response.status).toBe(200);
     expect(body).toContain("Contract Investigation");
+  });
+
+  test("GET /deep-chat/deepChat.bundle.js serves the chat asset", async () => {
+    const app = createApp({ inngestHandler: handler });
+    const response = await app.handle(
+      new Request("http://localhost/deep-chat/deepChat.bundle.js"),
+    );
+    expect(response.status).toBe(200);
   });
 
   test("GET /lake-county.css serves the stylesheet", async () => {

@@ -33,7 +33,7 @@ functionally fine and visually unprofessional; the change is presentation only.
 ## Constraints
 
 - No frontend toolchain (ADR-0005): one static HTML file plus one stylesheet,
-  served by the existing Elysia static setup.
+  with the HTML and stylesheet served by explicit routes in `src/app.ts`.
 - Repo style locks (`AGENTS.md`): no `let`, no loops, no `any`, no eslint
   disable comments; the page's script obeys the same discipline.
 - The chat keeps its current `directConnection` to Ollama `llama3.2` with
@@ -41,15 +41,15 @@ functionally fine and visually unprofessional; the change is presentation only.
 
 ## Decisions
 
-- **The page lives at `/`.** `src/index.ts` serves `public/index.html` on `/`
-  and redirects `/chat` to `/` so old links keep working.
+- **The page lives at `/`.** `src/app.ts` serves `public/index.html` on `/` and
+  redirects `/chat` to `/` so old links keep working.
 - **`public/index.html` is rewritten in place**, not split per route: one page,
   one file. `public/lake-county.css` carries the Lake County styling; the page
   keeps its chat script inline.
 - **The assistant panel is `position: fixed`, bottom right**, 380px wide capped
-  at `min(380px, calc(100vw - 2rem))`, and on viewports under 640px it spans the
-  bottom as a sheet. Page content gets right padding on wide screens so the
-  panel does not cover text.
+  at `min(380px, calc(100vw - 2rem))`, and on viewports under 900px it spans the
+  bottom as a sheet. Above 900px the panel floats and the reading column is
+  centered in the free space left of it.
 - **Styling targets deep-chat's documented JSON style attributes** (`chatStyle`,
   `inputAreaStyle`, `submitButtonStyles`, `messageStyles` on the `<deep-chat>`
   element), so the component matches the brand without forking it.

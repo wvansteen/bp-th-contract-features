@@ -120,7 +120,7 @@ main {
 }
 
 /* On narrow screens the panel becomes a bottom sheet spanning the viewport. */
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .assistant {
     right: 0;
     bottom: 0;
@@ -136,12 +136,15 @@ main {
   }
 }
 
-/* Once the panel floats, keep the reading column beside it rather than under
-   it: the column keeps its 44rem measure and its right edge stops one rem
-   short of the panel at every width. */
-@media (min-width: 641px) {
+/* At side-panel widths the panel floats at a constant 380px, leaving a
+   readable column. Center that column in the free space left of the panel: a
+   right margin reserves the panel plus 1rem of clearance, and the left margin
+   absorbs half of any leftover width, so the column neither touches nor hugs
+   the panel. The column keeps its 44rem measure once the viewport is wide
+   enough for it (about 72rem / 1150px). */
+@media (min-width: 901px) {
   main {
-    margin-left: auto;
-    margin-right: calc(min(380px, calc(100vw - 2rem)) + 1rem);
+    margin-right: calc(380px + 2rem);
+    margin-left: max(2rem, calc((100vw - 380px - 2rem - 44rem) / 2));
   }
 }

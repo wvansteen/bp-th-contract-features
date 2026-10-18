@@ -9,6 +9,14 @@ export type InngestEventHandler = (request: Request) => Promise<Response>;
 // widened; the chain's own handler types stay concrete.
 export type AppPlugin = AnyElysia;
 
+// Await the static plugin once at module scope so the deep-chat asset is
+// registered before `createApp` returns: an un-awaited `.use()` leaves a window
+// where the embedded assistant's only asset 404s.
+const deepChatAssets = await staticPlugin({
+  prefix: "/deep-chat",
+  assets: "node_modules/deep-chat/dist",
+});
+
 export function createApp(deps: {
   inngestHandler: InngestEventHandler;
   contractsRoutes: AppPlugin;
@@ -25,11 +33,6 @@ export function createApp(deps: {
           headers: { location: new URL("/", request.url).toString() },
         }),
     )
-    .use(
-      staticPlugin({
-        prefix: "/deep-chat",
-        assets: "node_modules/deep-chat/dist",
-      }),
-    )
+    .use(deepChatAssets)
     .get("/lake-county.css", () => Bun.file("public/lake-county.css"));
 }
