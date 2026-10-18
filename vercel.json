@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.x",
-  "buildCommand": "bun run db:migrate"
+  "buildCommand": "bun build src/index.ts --target bun --outdir ./dist --packages external && cp -r public/. dist/ && cp -r node_modules/deep-chat/dist dist/deep-chat && bun run db:migrate"
 }
