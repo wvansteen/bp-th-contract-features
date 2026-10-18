@@ -9,7 +9,7 @@ export interface BoxClientPort {
     offset: number;
     limit: number;
   }): Promise<BoxPage>;
-  describeFile(args: { fileId: string }): Promise<Record<string, unknown>>;
+  describeFile(args: { fileId: string }): Promise<unknown>;
 }
 
 export function createBoxClient({ token }: { token: string }): BoxClientPort {
@@ -41,8 +41,7 @@ export function createBoxClient({ token }: { token: string }): BoxClientPort {
     },
 
     async describeFile({ fileId }) {
-      const file = await sdk.files.getFileById(fileId);
-      return file as unknown as Record<string, unknown>;
+      return sdk.files.getFileById(fileId);
     },
   };
 }

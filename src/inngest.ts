@@ -1,12 +1,29 @@
 import { Inngest } from "inngest";
 import { boxClient, boxFolderId, documentStore } from "./deps";
 import { listFilesHandler } from "./functions/list-files";
-import {
-  processFileHandler,
-  type ProcessFileSteps,
-} from "./functions/process-file";
+import { processFileHandler } from "./functions/process-file";
 
 export const inngest = new Inngest({ id: "contract-features" });
+
+// Event payloads arrive as `any`. Each reader narrows the raw value to the one
+// field its handler needs, so no unsound value crosses the handler boundary.
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readMaxDocuments(data: unknown): number {
+  if (isRecord(data) && typeof data.maxDocuments === "number") {
+    return data.maxDocuments;
+  }
+  throw new Error("box/list.files requires a numeric maxDocuments");
+}
+
+function readFileId(data: unknown): string {
+  if (isRecord(data) && typeof data.fileId === "string") {
+    return data.fileId;
+  }
+  throw new Error("box/process.file requires a string fileId");
+}
 
 export const listFilesFn = inngest.createFunction(
   {
@@ -16,12 +33,11 @@ export const listFilesFn = inngest.createFunction(
     retries: 3,
   },
   async ({ event, step }) => {
-    // No cast needed here. `ListFilesSteps.run` is non-generic and `Jsonify` of
-    // a plain-JSON `BoxPage` is `BoxPage`, so the real step object satisfies
-    // the interface directly.
+    // `step.run` and `step.sendEvent` return `Promise<unknown>` from the ports,
+    // which the real step object satisfies directly. No assertion needed.
     await listFilesHandler(boxClient, step, {
       folderId: boxFolderId,
-      maxDocuments: event.data.maxDocuments,
+      maxDocuments: readMaxDocuments(event.data),
     });
   },
 );
@@ -35,15 +51,8 @@ export const processFileFn = inngest.createFunction(
     retries: 3,
   },
   async ({ event, step }) => {
-    // This cast is load-bearing. `ProcessFileSteps.run` is generic, and
-    // Inngest's `step.run` returns `Jsonify<Awaited<T>>`, because a step result
-    // is JSON round-tripped between attempts. `tsc` cannot prove the two agree
-    // for an unconstrained `T` and emits TS2345, so the narrowing happens here
-    // rather than leaking `any` through the handler signature.
-    const steps = { run: step.run } as unknown as ProcessFileSteps;
-
-    await processFileHandler(boxClient, steps, documentStore, {
-      fileId: event.data.fileId,
+    await processFileHandler(boxClient, step, documentStore, {
+      fileId: readFileId(event.data),
     });
   },
 );

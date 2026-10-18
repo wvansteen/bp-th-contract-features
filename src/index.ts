@@ -2,7 +2,7 @@ import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
 import { serve } from "inngest/bun";
 import { inngest, listFilesFn, processFileFn } from "./inngest";
-import { documentStore, pgPool } from "./deps";
+import { documentStore } from "./deps";
 import { createContractsRoutes } from "./routes/contracts";
 
 const handler = serve({
@@ -20,6 +20,7 @@ const app = new Elysia()
       assets: "node_modules/deep-chat/dist",
     }),
   )
+  .use(createContractsRoutes({ inngest, store: documentStore }))
   .listen(0);
 
 console.log(

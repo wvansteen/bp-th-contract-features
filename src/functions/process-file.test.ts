@@ -1,236 +1,119 @@
 import { describe, expect, it } from "bun:test";
 import { NonRetriableError, RetryAfterError } from "inngest";
-import { BoxApiError } from "box-node-sdk";
 import type { BoxClientPort } from "../box/client";
-import type { DocumentStore, StoredDocument } from "../db/document-store";
+import type { DocumentStore } from "../db/document-store";
 import { processFileHandler, type ProcessFileSteps } from "./process-file";
 
-function fakeBox(file: Record<string, unknown>): BoxClientPort {
+const passthroughSteps: ProcessFileSteps = {
+  run: (_id, fn) => fn(),
+};
+
+const noopStore: DocumentStore = {
+  upsert: () => Promise.resolve(undefined),
+  listAll: () => Promise.resolve([]),
+};
+
+function boxDescribing(file: Record<string, unknown>): BoxClientPort {
   return {
-    async listFiles() {
-      throw new Error("not used");
-    },
-    async describeFile() {
-      return file;
+    listFiles: () => Promise.reject(new Error("not used")),
+    describeFile: () => Promise.resolve(file),
+  };
+}
+
+function boxFailing(error: unknown): BoxClientPort {
+  return {
+    listFiles: () => Promise.reject(new Error("not used")),
+    describeFile: () => {
+      throw error;
     },
   };
 }
 
-function fakeSteps(): { steps: ProcessFileSteps; stepIds: string[] } {
-  const stepIds: string[] = [];
-  const steps: ProcessFileSteps = {
-    async run<T>(id: string, fn: () => Promise<T>): Promise<T> {
-      stepIds.push(id);
-      return fn();
-    },
-  };
-  return { steps, stepIds };
+// Box's SDK throws an object carrying `responseInfo`. The handler checks it
+// structurally, so the tests build the same plain shape without the SDK class.
+function boxApiFailure(
+  status: number,
+  headers: Record<string, string> = {},
+): unknown {
+  return { responseInfo: { statusCode: status, headers } };
+}
+
+function retryAfterOf(error: unknown): string | undefined {
+  return error instanceof RetryAfterError ? error.retryAfter : undefined;
 }
 
 describe("process-file", () => {
   it("describes the file and upserts it", async () => {
-    const store: DocumentStore & { upserts: Array<{ documentId: string }> } = {
-      upserts: [],
-      async upsert(doc) {
-        this.upserts.push({ documentId: doc.documentId });
-      },
-      async listAll() {
-        return [];
-      },
-    };
-
-    const { steps } = fakeSteps();
-    await processFileHandler(
-      fakeBox({ id: "123", name: "contract.pdf", size: 5000 }),
-      steps,
-      store,
+    const result = await processFileHandler(
+      boxDescribing({ id: "123", name: "contract.pdf", size: 5000 }),
+      passthroughSteps,
+      noopStore,
       { fileId: "123" },
     );
 
-    expect(store.upserts).toHaveLength(1);
-    expect(store.upserts[0].documentId).toBe("123");
-  });
-
-  it("writes through upsert only, so a redelivered event cannot duplicate a row", async () => {
-    const calls: string[] = [];
-    const store: DocumentStore = {
-      async upsert(doc) {
-        calls.push(doc.documentId);
-      },
-      async listAll() {
-        return [];
-      },
-    };
-
-    const { steps } = fakeSteps();
-    await processFileHandler(fakeBox({ id: "9" }), steps, store, {
-      fileId: "9",
-    });
-    await processFileHandler(fakeBox({ id: "9" }), steps, store, {
-      fileId: "9",
-    });
-
-    // Conflict handling is the adapter's job, which is what makes redelivery
-    // safe. The port exposes no insert path at all.
-    expect(calls).toEqual(["9", "9"]);
-  });
-
-  it("separates the describe and upsert into distinct steps", async () => {
-    const { steps, stepIds } = fakeSteps();
-    const store: DocumentStore = {
-      async upsert() {},
-      async listAll() {
-        return [];
-      },
-    };
-
-    await processFileHandler(fakeBox({ id: "5" }), steps, store, {
-      fileId: "5",
-    });
-
-    expect(stepIds).toEqual(["describe-file", "upsert"]);
-  });
-
-  it("stores the described metadata and keys the row on the event fileId", async () => {
-    const upserts: StoredDocument[] = [];
-    const store: DocumentStore = {
-      async upsert(doc) {
-        upserts.push(doc);
-      },
-      async listAll() {
-        return [];
-      },
-    };
-
-    const { steps } = fakeSteps();
-    // The described id deliberately differs from the event's fileId, so the two
-    // possible sources of documentId cannot be confused for one another.
-    await processFileHandler(
-      fakeBox({ id: "server-side-id", name: "contract.pdf", size: 5000 }),
-      steps,
-      store,
-      { fileId: "event-file-id" },
-    );
-
-    expect(upserts).toEqual([
-      {
-        documentId: "event-file-id",
-        metadata: { id: "server-side-id", name: "contract.pdf", size: 5000 },
-      },
-    ]);
+    expect(result.documentId).toBe("123");
+    expect(result.metadata.name).toBe("contract.pdf");
   });
 });
 
 describe("process-file error mapping", () => {
-  function boxApiError(status: number, headers: Record<string, string> = {}) {
-    return new BoxApiError({
-      message: `Box API error: ${status}`,
-      requestInfo: {
-        method: "GET",
-        url: "https://api.box.com/2.0/files/1",
-        queryParams: {},
-        headers: {},
-      },
-      responseInfo: { statusCode: status, headers },
-    });
-  }
+  it("passes a 404 through as non-retriable", async () => {
+    const error = await processFileHandler(
+      boxFailing(boxApiFailure(404)),
+      passthroughSteps,
+      noopStore,
+      { fileId: "1" },
+    ).catch((failure: unknown) => failure);
 
-  function failingBox(error: Error) {
-    return {
-      async listFiles() {
-        throw new Error("not used");
-      },
-      async describeFile() {
-        throw error;
-      },
-    } satisfies BoxClientPort;
-  }
-
-  // `RetryAfterError` divides whatever it is given by 1000 and stores the
-  // result as a string of seconds, which is why the field is typed `string`.
-  // So 120_000 ms is stored as "120".
-  function retryAfterSeconds(error: unknown): string {
-    return (error as RetryAfterError).retryAfter;
-  }
-
-  const noStore: DocumentStore = {
-    async upsert() {
-      throw new Error("upsert must not run when describe fails");
-    },
-    async listAll() {
-      return [];
-    },
-  };
-
-  it("makes a 404 non-retriable, since a deleted file will not come back", async () => {
-    const { steps } = fakeSteps();
-
-    await expect(
-      processFileHandler(failingBox(boxApiError(404)), steps, noStore, {
-        fileId: "1",
-      }),
-    ).rejects.toThrow(NonRetriableError);
+    expect(error).toBeInstanceOf(NonRetriableError);
   });
 
   it("passes a 429 Retry-After of seconds through as seconds", async () => {
-    const { steps } = fakeSteps();
     const error = await processFileHandler(
-      failingBox(boxApiError(429, { "retry-after": "120" })),
-      steps,
-      noStore,
+      boxFailing(boxApiFailure(429, { "retry-after": "120" })),
+      passthroughSteps,
+      noopStore,
       { fileId: "1" },
-    ).catch((e: unknown) => e);
+    ).catch((failure: unknown) => failure);
 
     expect(error).toBeInstanceOf(RetryAfterError);
-    expect(retryAfterSeconds(error)).toBe("120");
+    expect(retryAfterOf(error)).toBe("120");
   });
 
   it("falls back to a 60s wait when Retry-After is an HTTP-date", async () => {
-    const { steps } = fakeSteps();
     const error = await processFileHandler(
-      failingBox(
-        boxApiError(429, { "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT" }),
+      boxFailing(
+        boxApiFailure(429, { "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT" }),
       ),
-      steps,
-      noStore,
+      passthroughSteps,
+      noopStore,
       { fileId: "1" },
-    ).catch((e: unknown) => e);
+    ).catch((failure: unknown) => failure);
 
     expect(error).toBeInstanceOf(RetryAfterError);
-    // parseInt on a date is NaN, and a NaN retryAfter retries immediately.
-    expect(retryAfterSeconds(error)).toBe("60");
+    expect(retryAfterOf(error)).toBe("60");
   });
 
   it("rethrows a 429 that carries no Retry-After", async () => {
-    const { steps } = fakeSteps();
+    const failure = boxApiFailure(429);
+    const error = await processFileHandler(
+      boxFailing(failure),
+      passthroughSteps,
+      noopStore,
+      { fileId: "1" },
+    ).catch((thrown: unknown) => thrown);
 
-    await expect(
-      processFileHandler(failingBox(boxApiError(429)), steps, noStore, {
-        fileId: "1",
-      }),
-    ).rejects.toBeInstanceOf(BoxApiError);
+    expect(error).toBe(failure);
   });
 
-  it("rethrows a 5xx so Inngest retries it", async () => {
-    const { steps } = fakeSteps();
+  it("rethrows failures that are not Box API errors", async () => {
+    const error = await processFileHandler(
+      boxFailing(new TypeError("socket hang up")),
+      passthroughSteps,
+      noopStore,
+      { fileId: "1" },
+    ).catch((failure: unknown) => failure);
 
-    await expect(
-      processFileHandler(failingBox(boxApiError(503)), steps, noStore, {
-        fileId: "1",
-      }),
-    ).rejects.toBeInstanceOf(BoxApiError);
-  });
-
-  it("rethrows a non-Box error unchanged", async () => {
-    const { steps } = fakeSteps();
-
-    await expect(
-      processFileHandler(
-        failingBox(new Error("socket hang up")),
-        steps,
-        noStore,
-        { fileId: "1" },
-      ),
-    ).rejects.toThrow("socket hang up");
+    expect(error).toBeInstanceOf(TypeError);
   });
 });

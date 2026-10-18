@@ -37,7 +37,7 @@ export function createDrizzleDocumentStore(db: DrizzleDb): DocumentStore {
 
       return rows.map((row) => ({
         documentId: row.document_id,
-        metadata: row.metadata as Record<string, unknown>,
+        metadata: row.metadata,
       }));
     },
   };
