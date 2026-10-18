@@ -14,9 +14,6 @@ export type ListFilesSteps = {
 
 const PAGE_SIZE = 100;
 
-// Step results are JSON round-tripped between attempts, so their shape cannot
-// be trusted from the type alone. A mismatch is an error rather than a silent
-// truncation of the walk.
 function isBoxEntry(value: unknown): value is BoxFileEntry {
   if (typeof value !== "object" || value === null) return false;
   if (!("id" in value) || !("type" in value) || !("name" in value))
@@ -47,9 +44,6 @@ async function walk(
   pages: readonly number[],
   emitted: readonly SentEvent[],
 ): Promise<ListFilesResult> {
-  // The cap is the walk's entry condition, mirroring the pre-rewrite
-  // `while (processed < maxDocuments)`. Without it a cap landing exactly on a
-  // page boundary would fetch one extra page before the inner stops fire.
   if (processed >= params.maxDocuments) {
     return { pagesFetched: pages, emitted };
   }
@@ -62,8 +56,6 @@ async function walk(
     throw new Error(`Box returned an unexpected page at offset ${offset}`);
   }
 
-  // Box folder listings mix files, subfolders, and web links. Only files have
-  // metadata worth storing, and only files can be described by id.
   const files = result.entries.filter((entry) => entry.type === "file");
   const batch = files.slice(0, params.maxDocuments - processed);
   const events = batch.map((entry) => ({
@@ -80,13 +72,10 @@ async function walk(
   const nextEmitted = [...emitted, ...events];
   const nextProcessed = processed + batch.length;
 
-  // The cap was reached part-way through this page.
   if (batch.length < files.length) {
     return { pagesFetched: nextPages, emitted: nextEmitted };
   }
 
-  // Last page. `totalCount` counts every entry type, so compare against the
-  // offset we have walked rather than against `files.length`.
   if (offset + PAGE_SIZE >= result.totalCount) {
     return { pagesFetched: nextPages, emitted: nextEmitted };
   }

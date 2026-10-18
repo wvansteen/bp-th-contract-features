@@ -5,8 +5,6 @@ import { processFileHandler } from "./functions/process-file";
 
 export const inngest = new Inngest({ id: "contract-features" });
 
-// Event payloads arrive as `any`. Each reader narrows the raw value to the one
-// field its handler needs, so no unsound value crosses the handler boundary.
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -33,8 +31,6 @@ export const listFilesFn = inngest.createFunction(
     retries: 3,
   },
   async ({ event, step }) => {
-    // `step.run` and `step.sendEvent` return `Promise<unknown>` from the ports,
-    // which the real step object satisfies directly. No assertion needed.
     await listFilesHandler(boxClient, step, {
       folderId: boxFolderId,
       maxDocuments: readMaxDocuments(event.data),

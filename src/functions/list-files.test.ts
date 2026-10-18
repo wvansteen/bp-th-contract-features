@@ -18,8 +18,6 @@ function filesFrom(start: number, count: number): BoxFileEntry[] {
   );
 }
 
-// The Box stub is a pure lookup keyed by offset, so tests carry no mutable
-// fetch log. `pagesFetched` on the result records the walk instead.
 function boxWithPages(pages: Record<number, BoxPage>): BoxClientPort {
   return {
     listFiles: ({ offset }) =>
@@ -30,8 +28,6 @@ function boxWithPages(pages: Record<number, BoxPage>): BoxClientPort {
   };
 }
 
-// Runs the wrapped thunk and resolves the fan-out, but records nothing: the
-// handler returns its own walk summary.
 const passthroughSteps: ListFilesSteps = {
   run: (_id, fn) => fn(),
   sendEvent: () => Promise.resolve(undefined),
@@ -149,9 +145,6 @@ describe("list-files", () => {
   });
 
   it("rejects a malformed entry shape rather than throwing from filter", async () => {
-    // Step results are JSON round-tripped, so a page can be typed correctly and
-    // still be malformed at runtime. The guard is checked on the step result,
-    // which is why this stub returns the bad shape from `run`.
     const malformedSteps: ListFilesSteps = {
       run: () => Promise.resolve({ entries: [{}], totalCount: 1 }),
       sendEvent: () => Promise.resolve(undefined),
@@ -170,8 +163,6 @@ describe("list-files", () => {
 });
 
 describe("list-files replay safety", () => {
-  // A pure lookup: each step id maps to its canned result, and a missing id is
-  // a rejected step. No accumulating arrays, no spies.
   function cannedSteps(canned: Record<string, unknown>): ListFilesSteps {
     const resolve = (id: string): Promise<unknown> =>
       id in canned
@@ -193,7 +184,6 @@ describe("list-files replay safety", () => {
   const params = { folderId: "1", maxDocuments: 10 };
 
   it("rebuilds the walk from memoized step results", async () => {
-    // First entry has only the prefix memoized; `page-100` is not yet durable.
     const partial = {
       "page-0": page([file("1"), file("2")], 201),
       "emit-0": { ids: ["a", "b"] },
@@ -208,8 +198,6 @@ describe("list-files replay safety", () => {
       "no canned result for page-100",
     );
 
-    // Second entry: every step is now memoized, so the walk completes from the
-    // canned prefix without re-fetching.
     const full = {
       "page-0": page([file("1"), file("2")], 201),
       "emit-0": { ids: ["a", "b"] },

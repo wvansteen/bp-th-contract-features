@@ -31,8 +31,6 @@ type BoxApiFailure = {
   };
 };
 
-// Box's SDK throws a `BoxApiError`, but the handler only needs the shape it
-// reads. A structural check keeps the SDK class out of the function boundary.
 function isBoxApiFailure(error: unknown): error is BoxApiFailure {
   if (!isRecord(error)) return false;
   const { responseInfo } = error;
@@ -53,21 +51,11 @@ async function describeFile(
     if (!isBoxApiFailure(error)) throw error;
     const status = error.responseInfo.statusCode;
 
-    // A deleted or moved file will never exist again. Retrying just burns
-    // three attempts and leaves a permanently red run.
     if (status === 404) {
       throw new NonRetriableError(`Box file ${fileId} not found`);
     }
 
-    // Box sends Retry-After as either delta-seconds or an HTTP-date.
-    // `parseInt` on a date yields NaN, and the guard is not optional: the
-    // RetryAfterError constructor divides by 1000 and throws a plain Error
-    // when the result is not finite, which would turn Box's backoff into an
-    // immediate retry. RetryAfterError takes milliseconds and its message
-    // argument first, and stores the value back as a string of seconds.
     const retryAfter = error.responseInfo.headers["retry-after"];
-    // An empty header is treated as absent, matching the pre-rewrite truthy
-    // check and the bare-429 path below.
     if (status === 429 && retryAfter) {
       const seconds = Number.parseInt(retryAfter, 10);
       const waitMs = Number.isFinite(seconds) ? seconds * 1000 : 60_000;
@@ -96,10 +84,6 @@ export async function processFileHandler(
 
   const metadata = described;
 
-  // The document is the upsert step's result as well as its input, so the
-  // write is observable from the handler's return rather than only from the
-  // store. Removing the step would leave `upserted` undefined and fail the
-  // guard below.
   const document: StoredDocument = { documentId: params.fileId, metadata };
   const upserted = await steps.run("upsert", async () => {
     await store.upsert(document);

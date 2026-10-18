@@ -29,8 +29,6 @@ function boxFailing(error: unknown): BoxClientPort {
   };
 }
 
-// Box's SDK throws an object carrying `responseInfo`. The handler checks it
-// structurally, so the tests build the same plain shape without the SDK class.
 function boxApiFailure(
   status: number,
   headers: Record<string, string> = {},

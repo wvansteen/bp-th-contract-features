@@ -21,9 +21,6 @@ export function createBoxClient({ token }: { token: string }): BoxClientPort {
         queryParams: { offset, limit },
       });
 
-      // `totalCount` drives the pagination exit condition. Substituting a
-      // default here would silently truncate the run to the first page, so a
-      // missing field is an error instead.
       if (result.totalCount === undefined) {
         throw new Error(
           `Box returned no totalCount for folder ${folderId} at offset ${offset}`,
