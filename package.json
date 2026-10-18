@@ -2,11 +2,31 @@
   "name": "bp-th-contract-features",
   "type": "module",
   "packageManager": "bun@1.2.23",
-  "scripts": {},
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "build": "bun build src/index.ts --target bun --outdir ./dist",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0 --no-inline-config",
+    "prepare": "husky"
+  },
   "dependencies": {
     "@elysiajs/static": "^1.4.10",
     "deep-chat": "^2.5.1",
     "elysia": "^1.4.30",
     "inngest": "^4.23.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/bun": "~1.2.23",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-functional": "^10.0.1",
+    "husky": "^9.1.7",
+    "jiti": "^2.7.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2"
   }
 }

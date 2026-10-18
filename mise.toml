@@ -21,7 +21,7 @@ depends = ["dev:setup"]
 run = """
 export INNGEST_DEV="http://127.0.0.1:$(podman compose port inngest 8288 | cut -d: -f2)"
 LOG=$(mktemp)
-bun --hot src/index.ts 2>&1 | tee "$LOG" &
+bun run dev 2>&1 | tee "$LOG" &
 for _ in $(seq 100); do
   grep -q "Elysia listening" "$LOG" && break
   sleep 0.2

@@ -1,6 +1,8 @@
 services:
   inngest:
     image: inngest/inngest:latest
-    command: inngest dev --no-discovery --port 8288
+    command:
+      inngest dev -u http://host.containers.internal:3000/api/inngest
+      --no-discovery --port 8288
     ports:
       - "8288"

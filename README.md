@@ -9,13 +9,14 @@ PoC generative AI pipeline to structure and interact with contract documents.
 - [Background](#background)
 - [Install](#install)
 - [Usage](#usage)
+- [Development](#development)
 - [Architecture Decisions](#architecture-decisions)
 - [License](#license)
 
 ## Background
 
-A proof of concept for a small generative AI pipeline that structures
-contract documents and lets people interact with them.
+A proof of concept for a small generative AI pipeline that structures contract
+documents and lets people interact with them.
 
 ## Install
 
@@ -37,20 +38,18 @@ mise run dev:send      # send the demo event
 mise run dev:teardown  # stop the stack
 ```
 
-Nothing binds a fixed port: Podman assigns the Inngest dev server's
-ports and the app asks the OS for one, so every workspace gets its own
-and several can run at the same time. The dev tasks read the stack's
-addresses straight from Podman and pass them to the app process, so no
-ports are written down anywhere. End-to-end checks read the app's port
-from its startup output (`Elysia listening on http://...:<port>`) to
-build their curl commands.
+Nothing binds a fixed port: Podman assigns the Inngest dev server's ports and
+the app asks the OS for one, so every workspace gets its own and several can run
+at the same time. The dev tasks read the stack's addresses straight from Podman
+and pass them to the app process, so no ports are written down anywhere.
+End-to-end checks read the app's port from its startup output
+(`Elysia listening on http://...:<port>`) to build their curl commands.
 
-Once the app is up, the `dev` task reads its port from the startup
-output and registers the functions with the Inngest dev server over
-the documented `PUT` sync (SDK spec 4.3.1), pointing Inngest at
-`host.containers.internal:<port>` (the URL the Inngest container
-calls back at). To re-register on demand (for example after the dev
-server is recreated), send the same request:
+Once the app is up, the `dev` task reads its port from the startup output and
+registers the functions with the Inngest dev server over the documented `PUT`
+sync (SDK spec 4.3.1), pointing Inngest at `host.containers.internal:<port>`
+(the URL the Inngest container calls back at). To re-register on demand (for
+example after the dev server is recreated), send the same request:
 
 ```sh
 curl -X PUT http://host.containers.internal:<port>/api/inngest \
@@ -61,8 +60,23 @@ curl -X PUT http://host.containers.internal:<port>/api/inngest \
 - `GET /chat` serves a chat page that streams replies from a local
   [Ollama](https://ollama.com/) model.
 
-The chat page carries its Ollama settings in `public/index.html`;
-nothing server-side reads Ollama environment variables.
+The chat page carries its Ollama settings in `public/index.html`; nothing
+server-side reads Ollama environment variables.
+
+## Development
+
+```sh
+bun run format:check  # Prettier, read-only
+bun run lint          # ESLint locks
+bun run typecheck     # tsc --noEmit
+bun run build         # bundle to dist/
+```
+
+The pre-commit hook runs all four and rejects the commit on failure.
+
+`mise run` covers the workspace side: the local stack and its wiring. `bun run`
+covers the project side. A mise task may call `bun run`, never the other way
+round, so the gates work on a fresh clone with nothing but `bun install`.
 
 ## Architecture Decisions
 

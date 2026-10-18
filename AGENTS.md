@@ -5,15 +5,15 @@ Guidance for agents working in this repository. Commit changes here so everyone
 
 ## Project
 
-`bp-th-contract-features` is a proof of concept that **builds and tests a small
+`bp-th-contract-features` is a proof of concept that builds and tests a small
 generative AI pipeline to structure and interact with content from contract
-documents**. The problem space is still being discovered, so we deliberately
-work one small step at a time rather than building everything at once.
+documents. The problem space is still being discovered, so we deliberately work
+one small step at a time rather than building everything at once.
 
-Current state: **documentation only**. There is no application code, package
-manifest, or build tooling yet.
+Current state: an early prototype. There is application code in `src/`, a
+`package.json`, and build tooling.
 
-Intended, *non-binding* stack — none of this is decided until an ADR says so:
+Intended, non-binding stack. None of this is decided until an ADR says so:
 
 - Pipeline: Inngest
 - Web server: Elysia on Bun, TypeScript
@@ -23,41 +23,68 @@ Intended, *non-binding* stack — none of this is decided until an ADR says so:
 Style: mostly functional, leaning on a managed effects system where it earns its
 keep. Logging as a side effect is an accepted exception for this PoC.
 
+## Style
+
+The linter enforces these locks as errors:
+
+- No `let` or `var`; bind with `const`.
+- No assignment to variables, parameters, or object properties.
+- No `for`, `while`, or `do` loops.
+- No `any` anywhere, including type assertions and unsafe casts.
+- No `eslint-disable`, `@ts-ignore`, `@ts-expect-error`, or non-null `!`.
+
+For everything the linter cannot check, see
+`docs/guidelines/functional-typescript.md`.
+
+## Where scripts live
+
+`package.json` scripts are the project's commands: anything that needs only the
+pinned runtime and the repo contents, such as build, typecheck, lint, format, or
+running the app itself. Run them with `bun run`.
+
+`mise.toml` tasks are the workspace's commands: anything that needs environment,
+services, containers, or ambient config, such as starting and stopping the local
+stack or wiring the app to Inngest. Run them with `mise run`.
+
+A mise task may call `bun run`, never the other way round. The pre-commit hook
+runs the `bun run` gates, so they must work on a fresh clone with nothing but
+`bun install`.
+
 ## Development loop
 
 Every piece of work follows the same loop. Do not skip steps.
 
 ### 1. Plan
 
-Restate the task in your own words and keep it small. Work on **one feature or
-decision at a time**; prefer the smallest change that answers the current
+Restate the task in your own words and keep it small. Work on one feature or
+decision at a time; prefer the smallest change that answers the current
 question. Do not scaffold many libraries or features in one go.
 
 ### 2. Decision (if needed)
 
 If the work chooses between meaningful alternatives (a library, a data model, a
-hosting approach, a repo layout, an API shape), record an ADR **before or
-alongside** the code that depends on it.
+hosting approach, a repo layout, an API shape), record an ADR before or
+alongside the code that depends on it.
 
-- Copy `docs/decisions/adr-template.md` to
-  `docs/decisions/NNNN-short-title.md` using the next free number.
+- Copy `docs/decisions/adr-template.md` to `docs/decisions/NNNN-short-title.md`
+  using the next free number.
 - Fill it in and set its `status` (`proposed`, `accepted`, `rejected`, …).
-- To change a past decision, keep the old ADR and mark it `superseded by
-  ADR-NNNN`; never delete history. Supersede chains are for merged
-  decisions only — while the branch is unmerged, fix the ADR in place.
-- Keep ADRs lean: 2–3 sentences of context, only in-scope drivers and
-  options, the outcome with a one-line why, terse consequences, and a
-  one-line confirmation as a file or command check. An ADR records the
-  decision, not the chain of reasoning behind it: no speculative
-  generality, no support matrices, no re-argued pros and cons.
+- To change a past decision, keep the old ADR and mark it
+  `superseded by ADR-NNNN`; never delete history. Supersede chains are for
+  merged decisions only. While the branch is unmerged, fix the ADR in place.
+- Keep ADRs lean: two to three sentences of context, only in-scope drivers and
+  options, the outcome with a one-line why, terse consequences, and a one-line
+  confirmation as a file or command check. An ADR records the decision and
+  leaves the chain of reasoning out: no speculative generality, no support
+  matrices, no re-argued pros and cons.
 
-If no meaningful choice is being made, **skip this step** and move on.
+If no meaningful choice is being made, skip this step and move on.
 
 ### 3. Implement
 
-Make the smallest change that answers the question. Match the structure,
-naming, and style of the surrounding code. When code arrives, it is TypeScript
-on Bun; keep it mostly functional and allow logging as a side effect.
+Make the smallest change that answers the question. Match the structure, naming,
+and style of the surrounding code. When code arrives, it is TypeScript on Bun;
+keep it mostly functional and allow logging as a side effect.
 
 ### 4. Document
 
@@ -65,67 +92,68 @@ Two updates go with every feature:
 
 - Update `README.md` if behavior, setup, or the goal changed. Keep it
   standard-readme compliant (see below).
-- Add a bullet to the `[Unreleased]` section of `CHANGELOG.md` under the matching
-  Keep a Changelog category: `Added`, `Changed`, `Deprecated`, `Removed`,
-  `Fixed`, or `Security`. Keep bullets short, user-facing summaries of
-  shipped application features, not implementation detail. Process
-  (including changes to `AGENTS.md` itself), dev environment, and ADR
-  material are out of scope for the changelog.
+- Add a bullet to the `[Unreleased]` section of `CHANGELOG.md` under the
+  matching Keep a Changelog category: `Added`, `Changed`, `Deprecated`,
+  `Removed`, `Fixed`, or `Security`. Keep bullets short, user-facing summaries
+  of shipped application features, not implementation detail. Process (including
+  changes to `AGENTS.md` itself), dev environment, and ADR material are out of
+  scope for the changelog.
 
 ### 5. Clean up
 
-Before cleaning up a workspace (deleting a worktree, finishing a
-branch), stop its dev environment first with `mise run dev:teardown`,
-so the workspace's containers and networks do not outlive it.
+Before cleaning up a workspace (deleting a worktree, finishing a branch), stop
+its dev environment first with `mise run dev:teardown`, so the workspace's
+containers and networks do not outlive it.
 
 ## Tooling for token-efficient exploration
 
 Use these tools before reading files or running broad shell commands. They
 reduce token usage without reducing performance:
 
-- **osgrep** — local, offline semantic code search. Use it to find code by
-  meaning ("where is X validated?", "how does the pipeline connect?") instead
-  of guessing file paths or grepping for exact strings. Prefer `osgrep_search`
-  for conceptual queries, `osgrep_trace` for call graphs, and
-  `osgrep_skeleton` for signatures without bodies. Falls back to `grep`/`glob`
-  only when you know the exact string or file name.
+- osgrep: local, offline semantic code search. Use it to find code by meaning
+  ("where is X validated?", "how does the pipeline connect?") instead of
+  guessing file paths or grepping for exact strings. Prefer `osgrep_search` for
+  conceptual queries, `osgrep_trace` for call graphs, and `osgrep_skeleton` for
+  signatures without bodies. Falls back to `grep`/`glob` only when you know the
+  exact string or file name.
 
-- **RTK** — automatically rewrites shell commands to their token-leaner
-  equivalents (ultra-compact output, skipped env validation, batched flags).
-  It is active by default; it never lifts a deny, silences an ask, or changes
-  what OpenCode's own permission rules decide. Do not override or disable it.
+- RTK: automatically rewrites shell commands to their token-leaner equivalents
+  (ultra-compact output, skipped env validation, batched flags). It is active by
+  default; it never lifts a deny, silences an ask, or changes what OpenCode's
+  own permission rules decide. Do not override or disable it.
 
 Always reach for osgrep + RTK before `read`, `grep`, `glob`, or raw `shell`
 calls when exploring the codebase.
 
 ## Scope
 
-Everything is out of scope by default. Solve the narrowest problem at
-hand: no CI support, no compatibility matrices, no speculative
-generality. If a task balloons into custom scope or extra tooling
-support, stop — the requirements or the task description were wrong, not
-the scope. Narrow the task instead of widening the work.
+Everything is out of scope by default. Solve the narrowest problem at hand: no
+CI support, no compatibility matrices, no speculative generality. If a task
+balloons into custom scope or extra tooling support, stop. The requirements or
+the task description were wrong, not the scope. Narrow the task instead of
+widening the work.
 
 ## Where things live
 
-- `README.md` — follows [standard-readme](https://github.com/RichardLitt/standard-readme).
-  Sections appear in the spec's order; the title carries the repo name; the
-  short description is under 120 characters and must match the `package.json`
-  and GitHub descriptions. `Install`/`Usage` are omitted until functional code
+- `README.md` follows
+  [standard-readme](https://github.com/RichardLitt/standard-readme). Sections
+  appear in the spec's order; the title carries the repo name; the short
+  description is under 120 characters and must match the `package.json` and
+  GitHub descriptions. `Install`/`Usage` are omitted until functional code
   exists.
-- `CHANGELOG.md` — follows
+- `CHANGELOG.md` follows
   [Keep a Changelog 1.0.0](https://keepachangelog.com/en/1.0.0/) and
   [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-- `docs/decisions/` — [MADR](https://adr.github.io/madr/) v4 ADRs.
-- `LICENSE` — MIT.
+- `docs/decisions/` holds [MADR](https://adr.github.io/madr/) v4 ADRs.
+- `LICENSE` is MIT.
 - The git remote is `origin`
-  (`git@github.com:wvansteen/bp-th-contract-features.git`). **Do not invent
-  URLs** (issues, changelog compare links); add them only when they exist.
+  (`git@github.com:wvansteen/bp-th-contract-features.git`). Do not invent URLs
+  (issues, changelog compare links); add them only when they exist.
 
 ## Verification
 
 Before claiming any work is complete, run the relevant command and read its
-output — evidence first, not confidence.
+output.
 
 - Docs changes: check that links resolve, README headings match the Table of
   Contents, and the changelog entry exists.
@@ -135,9 +163,8 @@ output — evidence first, not confidence.
 ## Integration
 
 Integration is always branch and PR. Push the work to a feature branch on
-`origin` and open a pull request against `main`; never push directly to
-`main`.
+`origin` and open a pull request against `main`; never push directly to `main`.
 
-After the plan is implemented, handle each round of review feedback as
-its own commit and push it separately — one feedback round, one commit,
-one push. Never batch unrelated feedback rounds into a single commit.
+After the plan is implemented, handle each round of review feedback as its own
+commit and push it separately: one feedback round, one commit, one push. Never
+batch unrelated feedback rounds into a single commit.

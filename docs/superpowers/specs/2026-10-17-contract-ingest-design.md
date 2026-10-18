@@ -1,11 +1,12 @@
 # Contract Ingest Pipeline — Design Spec
 
-**Date:** 2026-10-17
-**Status:** Approved
+**Date:** 2026-10-17 **Status:** Approved
 
 ## Intent
 
-Build a pipeline that loads contract documents from a Box folder, processes their metadata asynchronously via Inngest, stores it in Postgres, and serves it via an API.
+Build a pipeline that loads contract documents from a Box folder, processes
+their metadata asynchronously via Inngest, stores it in Postgres, and serves it
+via an API.
 
 ## Goals
 
@@ -27,13 +28,17 @@ Build a pipeline that loads contract documents from a Box folder, processes thei
 
 ### Endpoints
 
-- `POST /process-contracts` — takes `{ maxDocuments: number }`, sends a `box/list.files` Inngest event, returns `201`. The body is validated by the framework, which rejects out-of-range values with `422`; the handler has no error branch.
-- `GET /contracts` — returns all stored documents as `[{ documentId, metadata }]`.
+- `POST /process-contracts` — takes `{ maxDocuments: number }`, sends a
+  `box/list.files` Inngest event, returns `201`. The body is validated by the
+  framework, which rejects out-of-range values with `422`; the handler has no
+  error branch.
+- `GET /contracts` — returns all stored documents as
+  `[{ documentId, metadata }]`.
 
 ### Event Flow
 
-One `box/list.files` run pages through the whole folder itself. It does not
-emit an event to continue.
+One `box/list.files` run pages through the whole folder itself. It does not emit
+an event to continue.
 
 ```
 POST /process-contracts → send "box/list.files" { maxDocuments }
@@ -54,8 +59,8 @@ box/process-file:
   - step.run "upsert": upsert { document_id, metadata } into Postgres
 ```
 
-`processed` and `offset` are local to the run. No counter is carried in an
-event payload.
+`processed` and `offset` are local to the run. No counter is carried in an event
+payload.
 
 ### Delivery Semantics
 
@@ -63,8 +68,8 @@ At-least-once, held correct by three independent layers:
 
 1. `step.sendEvent` is a durable step, so a retried run does not re-send a page
    whose send already succeeded.
-2. Every emitted event carries a stable `id`, so Inngest does not start a
-   second run for the same file within its 24-hour dedup window.
+2. Every emitted event carries a stable `id`, so Inngest does not start a second
+   run for the same file within its 24-hour dedup window.
 3. `process-file` only ever upserts, which is conflict-safe on `document_id`.
 
 No layer is relied on alone; a failed `sendEvent` batch may partially succeed.
@@ -81,16 +86,15 @@ All dependencies are built once in a single composition root module
 - `boxClient` created via `createBoxClient({ token })`
 - `db` created via `createDbClient(databaseUrl)` and wrapped in a
   `DocumentStore`
-- Inngest functions and Elysia routes import from `src/deps.ts` and receive
-  what they need as parameters
+- Inngest functions and Elysia routes import from `src/deps.ts` and receive what
+  they need as parameters
 
 Exactly one Postgres pool and one Box client exist per process. The pool is
 closed on shutdown.
 
-Handlers depend on narrow structural types — `BoxClientPort` and
-`DocumentStore` — so tests supply plain fakes and the vendor SDK stays behind
-one adapter. `DocumentStore` exposes no insert path, which is what makes
-redelivery safe.
+Handlers depend on narrow structural types — `BoxClientPort` and `DocumentStore`
+— so tests supply plain fakes and the vendor SDK stays behind one adapter.
+`DocumentStore` exposes no insert path, which is what makes redelivery safe.
 
 No global context, no service locators, no env vars accessed inside functions.
 
@@ -108,28 +112,31 @@ Auth, URL building, and `429` backoff are the SDK's job and are not
 reimplemented. The adapter only narrows the response types. Note the SDK
 camel-cases the REST response, so `total_count` is `totalCount`.
 
-The folder id comes from `BOX_FOLDER_ID` and is injected; no function
-hardcodes it.
+The folder id comes from `BOX_FOLDER_ID` and is injected; no function hardcodes
+it.
 
 ### Database
 
 Table `documents`:
+
 - `document_id` (text, primary key)
 - `metadata` (jsonb, not null)
 
 ### Rate Limiting
 
-- `list-files` function: `concurrency: { limit: 1 }`, no rate limit (runs rarely)
-- `process-file` function: `concurrency: { limit: 1 }`, `rateLimit: { limit: 1000, period: "1m" }`
+- `list-files` function: `concurrency: { limit: 1 }`, no rate limit (runs
+  rarely)
+- `process-file` function: `concurrency: { limit: 1 }`,
+  `rateLimit: { limit: 1000, period: "1m" }`
 
 `rateLimit` rather than `throttle`: Inngest documents `throttle` as soft and
 warns it may build a large backlog, with `rateLimit` as the hard control.
 
 Box's own limit is enforced by the SDK's backoff. When Box returns `429`, the
 Box client raises Inngest's `RetryAfterError` using the `Retry-After` header so
-the run sleeps exactly as long as Box asked. A `404` raises
-`NonRetriableError` — a deleted or moved file will not reappear, so retrying
-would burn attempts and leave a permanently red run.
+the run sleeps exactly as long as Box asked. A `404` raises `NonRetriableError`
+— a deleted or moved file will not reappear, so retrying would burn attempts and
+leave a permanently red run.
 
 No ceiling is asserted here; the SDK and Box's published limits are the source
 of truth.
