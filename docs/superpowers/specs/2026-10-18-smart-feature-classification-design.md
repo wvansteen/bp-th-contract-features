@@ -1,9 +1,17 @@
 # Smart Feature Classification Design
 
-Date: 2026-10-18 Status: agreed in conversation. Flow revised three times on
+<<<<<<< Updated upstream Date: 2026-10-18 Status: agreed in conversation. Flow
+revised three times on 2026-10-18. Final shape: no OCR pass; the PDF rides along
+on every classification request and an integrated model reads it directly, so no
+separate OCR concern remains.
+=======
+
+Date: 2026-10-18 Status: agreed in conversation. Flow revised twice on
 2026-10-18. Final shape: no OCR pass; the PDF rides along on every
-classification request and an integrated model reads it directly, so no separate
-OCR concern remains.
+classification request; `OCR_MODEL` selects the PDF parser engine so mistral-ocr
+and cloudflare-ai can be compared.
+
+> > > > > > > Stashed changes
 
 ## Intent
 
@@ -21,12 +29,21 @@ and dropped into one seam.
 - `BASE_SMART_FEATURE_PROMPT` as an interpolated template, iterable on its own
   independently of the per-feature prompts.
 - In the existing process-file step: one OpenRouter call per smart feature, in
-  parallel (`Promise.all`), each carrying the PDF as a file attachment.
+  parallel (`Promise.all`), each carrying the PDF as a file attachment. <<<<<<<
+  Updated upstream
 - The raw PDF stored as the `document` column and the results as
   `smart_features` jsonb on the `documents` table.
 - `OPENROUTER_API_KEY` and `SMART_FEATURE_MODEL` as environment variables,
   listed in `.env.example`. `SMART_FEATURE_MODEL` holds a model slug and is
-  expected to read the PDF itself.
+  expected to read the PDF itself. =======
+- The raw PDF stored as the `document` column and the results as
+  `smart_features` jsonb on the `documents` table.
+- `OPENROUTER_API_KEY`, `SMART_FEATURE_MODEL`, and `OCR_MODEL` as environment
+  variables, listed in `.env.example`. `OCR_MODEL` names the OpenRouter PDF
+  parser engine, `mistral-ocr` or `cloudflare-ai`, so the two can be tested
+  against the real documents. Local development uses `cloudflare-ai`.
+
+> > > > > > > Stashed changes
 
 ## Non-goals
 
@@ -54,7 +71,7 @@ Inside the existing process-file function, in order:
 1. Describe the file in Box (the existing `steps.run("describe-file", ...)`).
 2. Check the file type. If the file name does not end in `.pdf`, log a warning
    and stop: no download, no model call, no database record, run complete.
-3. Download the PDF bytes from Box.
+3. Download the PDF bytes from Box. <<<<<<< Updated upstream
 4. Write the row: metadata plus the PDF (the existing
    `steps.run("upsert", ...)`, extended with the `document` column). This is the
    "write it to Postgres as before" stage.
@@ -62,7 +79,18 @@ Inside the existing process-file function, in order:
    feature, in parallel (`Promise.all`). Each request carries
    `BASE_SMART_FEATURE_PROMPT` as a text part and the PDF as a file part, which
    the model reads directly; OpenRouter's default passes the file through to
-   models with file input and parses it for models without.
+   models with file input and parses it for models without. =======
+6. Write the row: metadata plus the PDF (the existing
+   `steps.run("upsert", ...)`, extended with the `document` column). This is the
+   "write it to Postgres as before" stage.
+7. Smart feature calls: one OpenRouter call to `SMART_FEATURE_MODEL` per
+   feature, in parallel (`Promise.all`). Each request carries
+   `BASE_SMART_FEATURE_PROMPT` as a text part and the PDF as a file part;
+   OpenRouter parses the PDF with the engine named by `OCR_MODEL` before the
+   model sees it.
+
+> > > > > > > Stashed changes
+
 6. Write the row again, now with `smart_features`.
 
 Step 6 is a plain upsert in the handler, not an Inngest step run. The function
@@ -103,18 +131,30 @@ added.
 
 ### Third round (answered 2026-10-18)
 
+<<<<<<< Updated upstream
+
 - **Sampling:** `temperature: 0` on every request, with
   `reasoning: { effort: "none" }` so extraction replies land in `content`
   instead of a reasoning field.
+- **End-to-end check:** one real document through the existing `POST /process-contracts`
+  ingest endpoint with `{"maxDocuments": 1}`, run manually. No automated
+  integration tests; the repo is not set up for them. The smoke run uses one
+  throwaway feature so the model path executes, and the
+  =======
+- **Sampling:** `temperature: 0` on every request.
 - **End-to-end check:** one real document through the existing
   `POST /process-contracts` ingest endpoint with `{"maxDocuments": 1}`, run
   manually. No automated integration tests; the repo is not set up for them. The
   smoke run uses one throwaway feature so the model path executes, and the
-  throwaway is not committed.
+
+> > > > > > > Stashed changes throwaway is not committed.
+
 - **Re-processing spend:** left as is, always re-classify.
 - **Defaults accepted (not overridden):** feature entries are `{ name, prompt }`
   only; truncated model replies are stored as-is; the skip warning is the only
   log line a run emits.
+
+<<<<<<< Updated upstream
 
 ### Fourth round (2026-10-18)
 
@@ -132,10 +172,21 @@ added.
 ## Premise checks (verified 2026-10-18)
 
 - There is no Mistral OCR model on OpenRouter (`mistral/mistral-ocr-latest`
+  returns 404). Mistral OCR is the `file-parser` plugin's `pdf.engine: "mistral-ocr"`,
+  billed at about $2 per 1,000 pages; `"cloudflare-ai"` converts PDFs to
+  markdown for free. The typed SDK value is
+  =======
+
+## Premise checks (verified 2026-10-18)
+
+- There is no Mistral OCR model on OpenRouter (`mistral/mistral-ocr-latest`
   returns 404). Mistral OCR is the `file-parser` plugin's
   `pdf.engine: "mistral-ocr"`, billed at about $2 per 1,000 pages;
   `"cloudflare-ai"` converts PDFs to markdown for free. The typed SDK value is
-  `PDFParserEngine = "mistral-ocr" | "cloudflare-ai" | "native"`.
+
+> > > > > > > Stashed changes
+> > > > > > > `PDFParserEngine = "mistral-ocr" | "cloudflare-ai" | "native"`.
+
 - PDF parsing works on any model: when the model has no native file input,
   OpenRouter parses the file and passes the parsed results to it.
   `deepseek/deepseek-v4.1-flash-1017` has `input_modalities: ["text","image"]`.
@@ -152,6 +203,8 @@ added.
 
 ## Costs and consequences
 
+<<<<<<< Updated upstream
+
 - With an integrated model the PDF is read as input tokens rather than parsed:
   tens of thousands of tokens per request for a 20-page contract, fractions of a
   cent at gpt-5-nano rates. Models without file input get it parsed instead
@@ -161,14 +214,32 @@ added.
 - Scanned, image-only PDFs: the smoke run's scanned contract produced no text
   under `cloudflare-ai` and read fine under `mistral-ocr`; native file input
   reads scans directly, which is why the integrated model wins on this corpus.
+  =======
+- The PDF is parsed once per feature request, not once per document. With
+  `mistral-ocr` that is about $2 per 1,000 pages per feature; `cloudflare-ai` is
+  free. This is the accepted cost of the simpler design.
+- A retry re-runs the download and every classification call, because nothing is
+  wrapped in Inngest step runs and nothing is memoized.
+- Scanned, image-only PDFs depend on the parse engine; `mistral-ocr` is the one
+  built for them. Unverified, since no sample document could be read during
+  design.
+
+> > > > > > > Stashed changes
+
 - PDF-only scope: the attachment hard-codes `application/pdf`.
 - Nothing text-like is stored, so downstream features that need document text
   must go through a model call.
 
 ## What is left to the builder
 
+<<<<<<< Updated upstream The plan in `docs/superpowers/plans/2026-10-18-smart-feature-classification.md`
+carries the exact signatures, file layout, and tests. Still open after that:
+=======
+
 The plan in `docs/superpowers/plans/2026-10-18-smart-feature-classification.md`
 carries the exact signatures, file layout, and tests. Still open after that:
+
+> > > > > > > Stashed changes
 
 - The targeted smart feature list, supplied later by the project owner.
 - Which engine wins once real documents have been run through both.
