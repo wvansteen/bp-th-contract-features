@@ -170,11 +170,13 @@ Append to `.env.example`, matching the existing comment style:
 OPENROUTER_API_KEY=
 
 # OpenRouter model slug used to classify smart features.
-SMART_FEATURE_MODEL=deepseek/deepseek-v4.1-flash-1017
+SMART_FEATURE_MODEL=openai/gpt-5-nano
 
 # OpenRouter PDF parser engine used on every request that carries a PDF.
-# "mistral-ocr" costs about $2 per 1,000 pages; "cloudflare-ai" is free.
-OCR_MODEL=cloudflare-ai
+# "native" hands the PDF to models that read it themselves; "mistral-ocr" and
+# "cloudflare-ai" parse it first ("mistral-ocr" costs about $2 per 1,000 pages,
+# "cloudflare-ai" is free).
+OCR_MODEL=native
 ```
 
 - [ ] **Step 6: Implement `src/openrouter/client.ts`**
@@ -189,6 +191,7 @@ const completion = await client.chat.send({
   chatRequest: {
     model,
     temperature: 0,
+    reasoning: { effort: "none" },
     messages: [
       {
         role: "user",
@@ -212,9 +215,9 @@ const completion = await client.chat.send({
 
 When `attachment` is unset, the content array holds only the text part and
 `plugins` is omitted. When it is set, the PDF is parsed with the configured
-engine before the model sees it. Every request pins `temperature: 0` for
-deterministic extraction. The response is the union
-`ChatResult | EventStream<ChatStreamChunk>`; narrow with
+engine before the model sees it. Every request pins `temperature: 0` and
+`reasoning: { effort: "none" }` for deterministic extraction. The response is
+the union `ChatResult | EventStream<ChatStreamChunk>`; narrow with
 `if (!("choices" in completion)) throw ...`. The reply text is the message
 content as-is when it is a string; when it is an array of content items,
 concatenate the `text` items (Review answer: strings as-is, arrays joined).

@@ -29,6 +29,7 @@ export function createOpenRouterClient({
         chatRequest: {
           model,
           temperature: 0,
+          reasoning: { effort: "none" },
           messages: [
             {
               role: "user",

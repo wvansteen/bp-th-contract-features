@@ -104,7 +104,9 @@ added.
 
 ### Third round (answered 2026-10-18)
 
-- **Sampling:** `temperature: 0` on every request.
+- **Sampling:** `temperature: 0` on every request, with
+  `reasoning: { effort: "none" }` so extraction replies land in `content`
+  instead of a reasoning field.
 - **End-to-end check:** one real document through the existing
   `POST /process-contracts` ingest endpoint with `{"maxDocuments": 1}`, run
   manually. No automated integration tests; the repo is not set up for them. The
