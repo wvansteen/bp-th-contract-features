@@ -18,11 +18,10 @@ and this project adheres to
   and processes each document's metadata via Inngest events; `GET /contracts`
   returns all stored document metadata from Postgres.
 - Lake County, Illinois branded `Contract Investigation` page at `/`, with the
-  chat embedded as a bottom-right assistant that streams replies from a local
-  Ollama model; `/chat` redirects to `/`.
 - Smart feature prompts for the 13 contract features in `docs/features.yml`, so
   document classification returns bare values and clause text with no
   commentary.
+- chat embedded as a bottom-right assistant.
 - Vercel deployment: one Vercel Function on the Bun runtime, migrations applied
   at build time.
 - Smart features: each processed document is classified against the configured
