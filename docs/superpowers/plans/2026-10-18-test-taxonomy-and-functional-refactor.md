@@ -53,6 +53,9 @@ Elysia.
 - Re-running or redoing the rebase; it is done.
 - The `AGENTS.md` `## Testing` section, the ADR renumber to 0008/0009, and the
   `dev:send` mise task removal the design doc also lists. Out of scope here.
+  (Post-review note: the final whole-branch review ruled the ADR renumber and
+  the `dev:send` removal back in as merge blockers and the fix wave landed them;
+  only the `AGENTS.md` `## Testing` section remains undone.)
 - New features, CI, or changes to the pre-commit gate.
 
 ## Review Focus
