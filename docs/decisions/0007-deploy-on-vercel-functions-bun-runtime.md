@@ -33,8 +33,8 @@ the migrations before traffic arrives.
 
 The app is the default export of `src/index.ts`; `src/main.ts` keeps the local
 listener. The build step runs `bun run db:migrate` against the unpooled Neon
-URL, and `includeFiles` bundles `public/` and the Deep Chat assets into the
-function.
+URL. The app serves `public/` and the Deep Chat assets itself; `vercel.json`
+`functions` cannot reach a mounted app, so no per-function config applies.
 
 ### Consequences
 
@@ -42,6 +42,8 @@ function.
 - Good, because migrations run in the build step, so a deploy cannot serve a
   stale schema.
 - Bad, because the entry is split: only `src/main.ts` calls `listen()`.
+- Bad, because `functions` config (file includes, `maxDuration`) cannot reach a
+  mounted app.
 - Bad, because the environment contract is duplicated per environment
   (`.env.example` documents it) and the first deploy needs a manual Inngest
   sync.

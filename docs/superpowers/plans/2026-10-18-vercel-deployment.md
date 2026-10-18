@@ -165,23 +165,18 @@ Create `vercel.json` as exactly:
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.x",
-  "buildCommand": "bun run db:migrate",
-  "functions": {
-    "src/index.ts": {
-      "includeFiles": "{public,node_modules/deep-chat/dist}/**",
-      "maxDuration": 60
-    }
-  }
+  "buildCommand": "bun run db:migrate"
 }
 ```
 
 Rationale recorded here for the reviewer: `bunVersion` selects the Bun runtime
 (`1.x` and `1.4.x` are the only valid values). `buildCommand` runs migrations in
-the build step on `DATABASE_URL_UNPOOLED` from the dashboard. `includeFiles`
-copies the page assets and deep-chat's dist into the one Vercel Function's
-bundle so `Bun.file("public/index.html")` and the `@elysiajs/static` plugin find
-them at runtime exactly as locally. The key `src/index.ts` is the entry file
-path from Task 1.
+the build step on `DATABASE_URL_UNPOOLED` from the dashboard. There is no
+`functions` block on purpose: its glob keys must match Vercel Function source
+files inside the `api` directory, and this app is the framework-mounted export
+of `src/index.ts`, which such keys cannot address (Vercel error
+`unused_function`). The page assets ride with whatever the mounted function
+carries, and the first deploy checks them.
 
 Acceptance: `bun run lint` and `bun run format:check` pass (the file is JSON in
 the prettier-checked set), and the JSON is exactly as above.

@@ -112,8 +112,8 @@ round, so the gates work on a fresh clone with nothing but `bun install`.
 The Vercel project is git-connected, with `main` as the production branch.
 `vercel.json` selects the Bun runtime and sets `bun run db:migrate` as the build
 command, so migrations run against `DATABASE_URL_UNPOOLED` before traffic
-arrives. The same file bundles `public/` and the Deep Chat assets into the one
-function.
+arrives. The app serves `public/` and the Deep Chat assets from its own routes;
+the first deploy confirms the function carries those files.
 
 The build step needs the project environment set first: `DATABASE_URL` (pooled
 Neon), `DATABASE_URL_UNPOOLED`, `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and the

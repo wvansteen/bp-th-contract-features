@@ -1,11 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.x",
-  "buildCommand": "bun run db:migrate",
-  "functions": {
-    "src/index.ts": {
-      "includeFiles": "{public,node_modules/deep-chat/dist}/**",
-      "maxDuration": 60
-    }
-  }
+  "buildCommand": "bun run db:migrate"
 }
