@@ -14,7 +14,6 @@ export const documentStore = createDrizzleDocumentStore(db);
 export const boxFolderId = env.boxFolderId;
 export const openRouterClient = createOpenRouterClient({
   apiKey: env.openRouterApiKey,
-  pdfEngine: env.ocrModel,
 });
 
 export const smartFeatureClassifier = createSmartFeatureClassifier({

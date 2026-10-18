@@ -3,7 +3,6 @@ export type Env = {
   boxFolderId: string;
   databaseUrl: string;
   openRouterApiKey: string;
-  ocrModel: string;
   smartFeatureModel: string;
 };
 
@@ -12,14 +11,12 @@ export function loadEnv(): Env {
   const boxFolderId = process.env.BOX_FOLDER_ID;
   const databaseUrl = process.env.DATABASE_URL;
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
-  const ocrModel = process.env.OCR_MODEL;
   const smartFeatureModel = process.env.SMART_FEATURE_MODEL;
 
   if (!boxAppToken) throw new Error("BOX_APP_TOKEN is required");
   if (!boxFolderId) throw new Error("BOX_FOLDER_ID is required");
   if (!databaseUrl) throw new Error("DATABASE_URL is required");
   if (!openRouterApiKey) throw new Error("OPENROUTER_API_KEY is required");
-  if (!ocrModel) throw new Error("OCR_MODEL is required");
   if (!smartFeatureModel) throw new Error("SMART_FEATURE_MODEL is required");
 
   return {
@@ -27,7 +24,6 @@ export function loadEnv(): Env {
     boxFolderId,
     databaseUrl,
     openRouterApiKey,
-    ocrModel,
     smartFeatureModel,
   };
 }

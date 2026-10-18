@@ -1,9 +1,9 @@
 # Smart Feature Classification Design
 
-Date: 2026-10-18 Status: agreed in conversation. Flow revised twice on
+Date: 2026-10-18 Status: agreed in conversation. Flow revised three times on
 2026-10-18. Final shape: no OCR pass; the PDF rides along on every
-classification request; `OCR_MODEL` selects the PDF parser engine so mistral-ocr
-and cloudflare-ai can be compared.
+classification request and an integrated model reads it directly, so no separate
+OCR concern remains.
 
 ## Intent
 
@@ -24,10 +24,9 @@ and dropped into one seam.
   parallel (`Promise.all`), each carrying the PDF as a file attachment.
 - The raw PDF stored as the `document` column and the results as
   `smart_features` jsonb on the `documents` table.
-- `OPENROUTER_API_KEY`, `SMART_FEATURE_MODEL`, and `OCR_MODEL` as environment
-  variables, listed in `.env.example`. `OCR_MODEL` names the OpenRouter PDF
-  parser engine, `mistral-ocr` or `cloudflare-ai`, so the two can be tested
-  against the real documents. Local development uses `cloudflare-ai`.
+- `OPENROUTER_API_KEY` and `SMART_FEATURE_MODEL` as environment variables,
+  listed in `.env.example`. `SMART_FEATURE_MODEL` holds a model slug and is
+  expected to read the PDF itself.
 
 ## Non-goals
 
@@ -61,9 +60,9 @@ Inside the existing process-file function, in order:
    "write it to Postgres as before" stage.
 5. Smart feature calls: one OpenRouter call to `SMART_FEATURE_MODEL` per
    feature, in parallel (`Promise.all`). Each request carries
-   `BASE_SMART_FEATURE_PROMPT` as a text part and the PDF as a file part;
-   OpenRouter parses the PDF with the engine named by `OCR_MODEL` before the
-   model sees it.
+   `BASE_SMART_FEATURE_PROMPT` as a text part and the PDF as a file part, which
+   the model reads directly; OpenRouter's default passes the file through to
+   models with file input and parses it for models without.
 6. Write the row again, now with `smart_features`.
 
 Step 6 is a plain upsert in the handler, not an Inngest step run. The function
@@ -117,6 +116,19 @@ added.
   only; truncated model replies are stored as-is; the skip warning is the only
   log line a run emits.
 
+### Fourth round (2026-10-18)
+
+- **Model:** `SMART_FEATURE_MODEL=openai/gpt-5-nano`, the cheapest slug on the
+  board ($0.025/M in, $0.20/M out) with native file input. GPT-4.1 nano remains
+  the only nano-class model that never reasons, at four times the input price.
+- **`OCR_MODEL` retired.** Its original job (a separate OCR model) disappeared
+  with the OCR pass, and an integrated model needs no parser knob: OpenRouter's
+  default hands the PDF to models with file input and parses it otherwise. The
+  cloudflare-vs-mistral comparison the knob existed for is answered by the smoke
+  run: `cloudflare-ai` produced no text for a scanned contract, `mistral-ocr`
+  read it, and native file input reads it without a parse charge. Re-adding the
+  knob is one line if a future model lacks file input and the engine matters.
+
 ## Premise checks (verified 2026-10-18)
 
 - There is no Mistral OCR model on OpenRouter (`mistral/mistral-ocr-latest`
@@ -140,14 +152,15 @@ added.
 
 ## Costs and consequences
 
-- The PDF is parsed once per feature request, not once per document. With
-  `mistral-ocr` that is about $2 per 1,000 pages per feature; `cloudflare-ai` is
-  free. This is the accepted cost of the simpler design.
+- With an integrated model the PDF is read as input tokens rather than parsed:
+  tens of thousands of tokens per request for a 20-page contract, fractions of a
+  cent at gpt-5-nano rates. Models without file input get it parsed instead
+  (`mistral-ocr` about $2 per 1,000 pages per feature request).
 - A retry re-runs the download and every classification call, because nothing is
   wrapped in Inngest step runs and nothing is memoized.
-- Scanned, image-only PDFs depend on the parse engine; `mistral-ocr` is the one
-  built for them. Unverified, since no sample document could be read during
-  design.
+- Scanned, image-only PDFs: the smoke run's scanned contract produced no text
+  under `cloudflare-ai` and read fine under `mistral-ocr`; native file input
+  reads scans directly, which is why the integrated model wins on this corpus.
 - PDF-only scope: the attachment hard-codes `application/pdf`.
 - Nothing text-like is stored, so downstream features that need document text
   must go through a model call.

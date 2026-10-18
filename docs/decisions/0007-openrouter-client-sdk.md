@@ -14,7 +14,7 @@ still open.
 
 ## Decision Drivers
 
-- The file content part and the file-parser plugin these requests need
+- The file content part these requests need
 - Types generated from the API surface rather than hand-written
 - One dependency behind the `OpenRouterClientPort`, so the rest of the code does
   not see the SDK
@@ -28,8 +28,7 @@ still open.
 ## Decision Outcome
 
 Chosen option: "Official `@openrouter/sdk`", because it is the vendor SDK and
-its generated types cover the file content part and the file-parser plugin these
-requests need.
+its generated types cover the file content part these requests need.
 
 ### Consequences
 

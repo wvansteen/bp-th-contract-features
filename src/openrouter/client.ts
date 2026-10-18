@@ -1,5 +1,4 @@
 import { OpenRouter } from "@openrouter/sdk";
-import { unrecognized } from "@openrouter/sdk/types";
 
 export type CompletionInput = {
   model: string;
@@ -13,15 +12,10 @@ export interface OpenRouterClientPort {
 
 export function createOpenRouterClient({
   apiKey,
-  pdfEngine,
 }: {
   apiKey: string;
-  pdfEngine: string;
 }): OpenRouterClientPort {
   const client = new OpenRouter({ apiKey });
-  // The engine is an open enum the SDK models as a branded string; this brands
-  // the configured slug once so `complete` can pass it through without a cast.
-  const engine = unrecognized(pdfEngine);
 
   return {
     async complete({ model, prompt, attachment }) {
@@ -49,11 +43,6 @@ export function createOpenRouterClient({
                 : [{ type: "text", text: prompt }],
             },
           ],
-          ...(attachment
-            ? {
-                plugins: [{ id: "file-parser", pdf: { engine } }],
-              }
-            : {}),
         },
       });
 

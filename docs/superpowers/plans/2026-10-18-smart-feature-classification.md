@@ -14,9 +14,9 @@ two durable step runs it has today (`describe-file`, `upsert`) and gains two
 plain handler stages around them: a Box download before the upsert, and a
 `Promise.all` over the smart feature list after it. Each classification request
 carries `BASE_SMART_FEATURE_PROMPT` as a text part and the PDF as a file part;
-OpenRouter parses the PDF with the engine named by `OCR_MODEL` (`mistral-ocr` or
-`cloudflare-ai`) before the model sees it. The `documents` table gains
-`document` (bytea) and `smart_features` (jsonb).
+the model reads the PDF directly (OpenRouter's default hands the file to models
+with file input and parses it otherwise). The `documents` table gains `document`
+(bytea) and `smart_features` (jsonb).
 
 **Tech Stack:** Bun 1.2.23, TypeScript strict with `noUncheckedIndexedAccess`,
 Inngest 4.x, `@openrouter/sdk` (official, latest 1.4.x), `box-node-sdk` 10.18.0,
@@ -95,12 +95,11 @@ Drizzle ORM + postgres.js, Elysia, `bun:test`.
 - Produces: `src/openrouter/client.ts` exports
   - `type CompletionInput = { model: string; prompt: string; attachment?: { filename: string; bytes: Uint8Array } }`
   - `type OpenRouterClientPort = { complete(input: CompletionInput): Promise<string> }`
-  - `createOpenRouterClient(args: { apiKey: string; pdfEngine: string }): OpenRouterClientPort`
+  - `createOpenRouterClient(args: { apiKey: string }): OpenRouterClientPort`
 - Produces: `Env` in `src/config/env.ts` gains `openRouterApiKey: string` (from
-  `OPENROUTER_API_KEY`), `ocrModel: string` (from `OCR_MODEL`), and
-  `smartFeatureModel: string` (from `SMART_FEATURE_MODEL`).
-- Produces: `src/deps.ts` exports `openRouterClient: OpenRouterClientPort`,
-  built with `pdfEngine: env.ocrModel`.
+  `OPENROUTER_API_KEY`) and `smartFeatureModel: string` (from
+  `SMART_FEATURE_MODEL`).
+- Produces: `src/deps.ts` exports `openRouterClient: OpenRouterClientPort`.
 
 There is no unit test for `createOpenRouterClient`. It is thin glue to
 `@openrouter/sdk`, same status as `createBoxClient`, and the request and
@@ -119,8 +118,7 @@ options only, one-line why, terse consequences, one-line confirmation):
 - Options: official `@openrouter/sdk`; plain `fetch` against
   `POST /api/v1/chat/completions`; OpenAI SDK pointed at OpenRouter.
 - Outcome: `@openrouter/sdk`, because it is the vendor SDK and its generated
-  types cover the file content part and the file-parser plugin these requests
-  need.
+  types cover the file content part these requests need.
 - Confirmation: `src/openrouter/client.ts` imports `@openrouter/sdk` and no file
   under `src/` calls `openrouter.ai` over `fetch`.
 
@@ -141,11 +139,11 @@ format:
   the engine knob lets `mistral-ocr` and `cloudflare-ai` be compared on real
   documents.
 - Consequences: good because there is no extraction code and no intermediate
-  text representation; bad because the parse runs once per feature request
-  (`mistral-ocr` about $2 per 1,000 pages per request) and no text is stored.
-- Confirmation: `src/openrouter/client.ts` adds
-  `plugins: [{ id: "file-parser", pdf: { engine } }]` to requests carrying an
-  attachment, and no source file parses PDFs.
+  text representation, and an integrated model reads scanned pages natively; bad
+  because the document travels with every feature request and no text is stored.
+- Confirmation: `src/openrouter/client.ts` sends the attachment as a `file`
+  content part, configures no `file-parser` plugin, and no source file parses
+  PDFs.
 
 - [ ] **Step 3: Install the SDK**
 
@@ -154,10 +152,10 @@ Run: `bun add @openrouter/sdk` Expected: `package.json` dependencies list
 
 - [ ] **Step 4: Add the environment variables**
 
-In `src/config/env.ts`, add `openRouterApiKey: string`, `ocrModel: string`, and
-`smartFeatureModel: string` to `Env`, read from `OPENROUTER_API_KEY`,
-`OCR_MODEL`, and `SMART_FEATURE_MODEL`, and throw the same kind of "is required"
-errors the Box vars throw when any is missing.
+In `src/config/env.ts`, add `openRouterApiKey: string` and
+`smartFeatureModel: string` to `Env`, read from `OPENROUTER_API_KEY` and
+`SMART_FEATURE_MODEL`, and throw the same kind of "is required" errors the Box
+vars throw when any is missing.
 
 Run: `bun run typecheck` Expected: PASS.
 
@@ -171,12 +169,6 @@ OPENROUTER_API_KEY=
 
 # OpenRouter model slug used to classify smart features.
 SMART_FEATURE_MODEL=openai/gpt-5-nano
-
-# OpenRouter PDF parser engine used on every request that carries a PDF.
-# "native" hands the PDF to models that read it themselves; "mistral-ocr" and
-# "cloudflare-ai" parse it first ("mistral-ocr" costs about $2 per 1,000 pages,
-# "cloudflare-ai" is free).
-OCR_MODEL=native
 ```
 
 - [ ] **Step 6: Implement `src/openrouter/client.ts`**
@@ -197,7 +189,7 @@ const completion = await client.chat.send({
         role: "user",
         content: [
           { type: "text", text: prompt },
-          // when input.attachment is set, append the file part and the parser plugin:
+          // when input.attachment is set, append the file part:
           {
             type: "file",
             file: {
@@ -208,16 +200,15 @@ const completion = await client.chat.send({
         ],
       },
     ],
-    plugins: [{ id: "file-parser", pdf: { engine: pdfEngine } }],
   },
 });
 ```
 
-When `attachment` is unset, the content array holds only the text part and
-`plugins` is omitted. When it is set, the PDF is parsed with the configured
-engine before the model sees it. Every request pins `temperature: 0` and
-`reasoning: { effort: "none" }` for deterministic extraction. The response is
-the union `ChatResult | EventStream<ChatStreamChunk>`; narrow with
+When `attachment` is unset, the content array holds only the text part. When it
+is set, the PDF rides along as a file part and the model reads it. Every request
+pins `temperature: 0` and `reasoning: { effort: "none" }` for deterministic
+extraction. The response is the union
+`ChatResult | EventStream<ChatStreamChunk>`; narrow with
 `if (!("choices" in completion)) throw ...`. The reply text is the message
 content as-is when it is a string; when it is an array of content items,
 concatenate the `text` items (Review answer: strings as-is, arrays joined).
@@ -228,13 +219,13 @@ reject the call shape, adapt to them; they are the source of truth.
 
 - [ ] **Step 7: Wire `openRouterClient` in `src/deps.ts`**
 
-`export const openRouterClient = createOpenRouterClient({ apiKey: env.openRouterApiKey, pdfEngine: env.ocrModel });`
+`export const openRouterClient = createOpenRouterClient({ apiKey: env.openRouterApiKey });`
 alongside the other clients.
 
 - [ ] **Step 8: README env line**
 
 In the Install section, change the `.env` sentence to cover `BOX_APP_TOKEN`,
-`BOX_FOLDER_ID`, `OPENROUTER_API_KEY`, `OCR_MODEL`, and `SMART_FEATURE_MODEL`.
+`BOX_FOLDER_ID`, `OPENROUTER_API_KEY`, and `SMART_FEATURE_MODEL`.
 
 - [ ] **Step 9: Verify and commit**
 
@@ -894,8 +885,8 @@ git commit -m "feat: classify documents against smart features during processing
 
 This is the only end-to-end check; there are no automated integration tests.
 Copy the real `.env` values into the worktree (`BOX_APP_TOKEN`, `BOX_FOLDER_ID`,
-`OPENROUTER_API_KEY`, `SMART_FEATURE_MODEL`, `OCR_MODEL=cloudflare-ai`), and add
-one throwaway feature to `SMART_FEATURES`, for example
+`OPENROUTER_API_KEY`, `SMART_FEATURE_MODEL`), and add one throwaway feature to
+`SMART_FEATURES`, for example
 `{ name: "Payment Terms", prompt: "payment terms" }`, so the model path actually
 executes. Do not commit the throwaway feature.
 

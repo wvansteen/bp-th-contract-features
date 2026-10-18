@@ -9,20 +9,21 @@ decision-makers: William Van Steen
 ## Context and Problem Statement
 
 Smart feature prompts need the document's text, the documents are PDFs, and
-OpenRouter parses PDFs server-side for any model. Capturing that parse as stored
-text is not supported cleanly through the typed SDK (no annotations field), and
-the project does not work around its tools.
+OpenRouter can hand PDFs to models directly or parse them server-side. Capturing
+a parse as stored text is not supported cleanly through the typed SDK (no
+annotations field), and the project does not work around its tools.
 
 ## Decision Drivers
 
 - No PDF extraction or OCR code in this repo
-- The parse engine must be comparable on real documents
-- The narrowest path from a stored PDF to promptable text
+- How the PDF is digested, native file input or server-side parse, must not
+  become repo code
+- The narrowest path from a stored PDF to promptable content
 
 ## Considered Options
 
-- Attach the PDF to every classification request and let OpenRouter parse it,
-  with the engine configurable
+- Attach the PDF to every classification request and let OpenRouter decide how
+  to digest it
 - A separate OCR pass storing the OCR model's reproduction of the parse
 - Box `extracted_text` representation
 - A local PDF text extraction library
@@ -30,18 +31,20 @@ the project does not work around its tools.
 ## Decision Outcome
 
 Chosen option: "Attach the PDF to every classification request", because it
-needs no text handling at all and the engine knob lets `mistral-ocr` and
-`cloudflare-ai` be compared on real documents.
+needs no text handling at all: OpenRouter hands the file to models with native
+file input and parses it otherwise, so no engine knob is needed and the digest
+stays correct as `SMART_FEATURE_MODEL` changes.
 
 ### Consequences
 
-- Good, because there is no extraction code and no intermediate text
-  representation.
-- Bad, because the parse runs once per feature request (`mistral-ocr` about $2
-  per 1,000 pages per request) and no text is stored.
+- Good, because there is no extraction code, no intermediate text
+  representation, and no parser configuration to maintain.
+- Good, because an integrated model reads scanned pages natively, which
+  server-side text parsing (`cloudflare-ai`) could not do on real documents.
+- Bad, because the document travels with every feature request, as input tokens
+  or parse cost per request, and no text is stored.
 
 ### Confirmation
 
-`src/openrouter/client.ts` adds
-`plugins: [{ id: "file-parser", pdf: { engine } }]` to requests carrying an
-attachment, and no source file parses PDFs.
+`src/openrouter/client.ts` sends the attachment as a `file` content part on
+requests, configures no `file-parser` plugin, and no source file parses PDFs.
