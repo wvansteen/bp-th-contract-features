@@ -5,7 +5,7 @@ import type { DocumentStore, StoredDocument } from "../db/document-store";
 export type ProcessFileResult = {
   documentId: string;
   metadata: Record<string, unknown>;
-  upserted: { documentId: string; metadata: Record<string, unknown> };
+  upserted: Pick<StoredDocument, "documentId" | "metadata">;
 };
 
 export type ProcessFileSteps = {
@@ -16,7 +16,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isStoredDocument(value: unknown): value is StoredDocument {
+function isStoredDocument(
+  value: unknown,
+): value is Pick<StoredDocument, "documentId" | "metadata"> {
   return (
     isRecord(value) &&
     typeof value.documentId === "string" &&
