@@ -42,6 +42,10 @@ Vercel project environment.
   `db:migrate` task injects the same stack URL. For production, set both
   database names in the Vercel project environment: the pooled Neon URL as
   `DATABASE_URL` and the unpooled one as `DATABASE_URL_UNPOOLED`.
+- `OPENROUTER_API_KEY`, `OCR_MODEL`, and `SMART_FEATURE_MODEL`.
+
+The dev tasks inject `DATABASE_URL` from the stack's published port, so no
+connection string is stored.
 
 ## Usage
 
