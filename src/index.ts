@@ -12,15 +12,6 @@ const handler = serve({
 
 const app = new Elysia()
   .get("/", () => Bun.file("public/index.html"))
-  .all("/api/inngest", ({ request }) => handler(request))
-  .get(
-    "/chat",
-    ({ request }) =>
-      new Response(null, {
-        status: 302,
-        headers: { location: new URL("/", request.url).toString() },
-      }),
-  )
   .get("/lake-county.css", () => Bun.file("public/lake-county.css"))
   .use(
     await staticPlugin({
@@ -29,6 +20,7 @@ const app = new Elysia()
     }),
   )
   .use(createContractsRoutes({ inngest, store: documentStore }))
+  .all("/api/inngest", ({ request }) => handler(request))
   .listen(0);
 
 console.log(
