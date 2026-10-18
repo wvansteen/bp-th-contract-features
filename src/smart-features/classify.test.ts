@@ -5,10 +5,17 @@ import { BASE_SMART_FEATURE_PROMPT } from "./prompts";
 const document = new Uint8Array([1, 2, 3, 4, 5]);
 const filename = "20220920103554.pdf";
 
+async function* noChatText(): AsyncGenerator<string> {
+  // The classifier never streams.
+}
+
 describe("createSmartFeatureClassifier", () => {
   it("returns one entry per feature keyed by name", async () => {
     const classify = createSmartFeatureClassifier({
-      client: { complete: ({ prompt }) => Promise.resolve(prompt) },
+      client: {
+        complete: ({ prompt }) => Promise.resolve(prompt),
+        chatTextStream: noChatText,
+      },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [
         { name: "Payment Terms", prompt: "payment terms" },
@@ -37,6 +44,7 @@ describe("createSmartFeatureClassifier", () => {
               ":",
             ),
           ),
+        chatTextStream: noChatText,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [{ name: "Payment Terms", prompt: "payment terms" }],
@@ -49,7 +57,10 @@ describe("createSmartFeatureClassifier", () => {
 
   it("returns an empty object when no features are configured", async () => {
     const classify = createSmartFeatureClassifier({
-      client: { complete: () => Promise.reject(new Error("not used")) },
+      client: {
+        complete: () => Promise.reject(new Error("not used")),
+        chatTextStream: noChatText,
+      },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [],
     });
@@ -59,7 +70,10 @@ describe("createSmartFeatureClassifier", () => {
 
   it("stores an empty model reply verbatim", async () => {
     const classify = createSmartFeatureClassifier({
-      client: { complete: () => Promise.resolve("") },
+      client: {
+        complete: () => Promise.resolve(""),
+        chatTextStream: noChatText,
+      },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [{ name: "Termination", prompt: "termination clause" }],
     });
@@ -74,6 +88,7 @@ describe("createSmartFeatureClassifier", () => {
           prompt.includes("boom")
             ? Promise.reject(new Error("model unavailable"))
             : Promise.resolve(prompt),
+        chatTextStream: noChatText,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [
