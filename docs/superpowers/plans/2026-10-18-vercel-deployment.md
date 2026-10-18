@@ -181,7 +181,7 @@ Create `vercel.json` as exactly:
   "buildCommand": "bun run db:migrate",
   "functions": {
     "src/index.ts": {
-      "includeFiles": ["public/**", "node_modules/deep-chat/dist/**"],
+      "includeFiles": "{public,node_modules/deep-chat/dist}/**",
       "maxDuration": 60
     }
   }
