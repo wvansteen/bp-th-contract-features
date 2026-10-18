@@ -40,5 +40,6 @@ description = "Apply Drizzle migrations to the local Postgres"
 depends = ["dev:setup"]
 run = """
 export DATABASE_URL="postgresql://bp:bp@127.0.0.1:$(podman compose port postgres 5432 | cut -d: -f2)/contracts"
+export DATABASE_URL_UNPOOLED="$DATABASE_URL"
 bun run db:migrate
 """
