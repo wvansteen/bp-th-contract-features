@@ -17,7 +17,7 @@ the things ESLint and the TypeScript compiler can decide, they decide hard.
 ## Goals
 
 - Hard locks on the rules below, enforced by tooling that exits non-zero
-- No route around a lock from inside a source file
+- No route around a lock from inside a source file for standard mutable code
 - A pre-commit hook that rejects a commit whose format, lint, typecheck, or
   build fails
 - A rule set that is cheap to extend: adding a lock is a one-line change
@@ -29,6 +29,10 @@ the things ESLint and the TypeScript compiler can decide, they decide hard.
 - Enforcing module boundaries or import direction
 - Type-level immutability (`prefer-immutable-types`,
   `type-declaration-immutability`)
+- Hand-written or bespoke lint rules. Community rules only:
+  `eslint-plugin-functional`, `typescript-eslint`, ESLint core.
+- Guards against deliberate circumvention (`Reflect.set`, `WeakMap` mutators,
+  `constructor.constructor`), which no community rule covers cleanly
 - CI, test tooling, or hosting
 - Biome or Oxlint
 
@@ -53,8 +57,6 @@ does not fail a tool call, so warnings are not an enforcement mechanism here.
 |                              | `@typescript-eslint/restrict-template-expressions` with `allowAny: false`      | `any` interpolated into a template literal, which the `no-unsafe-*` family does not cover and the rule allows by default          |
 |                              | `@typescript-eslint/no-unsafe-function-type`                                   | the `Function` type                                                                                                               |
 | no `eval`                    | `no-eval`                                                                      | `eval` smuggles `let`, assignment, loops and `any` past every lock at once; `new Function` is already caught by `no-implied-eval` |
-| no mutation by reflection    | `no-restricted-properties` (`Reflect.set`, `Reflect.deleteProperty`)           | mutation through reflection, which `functional/immutable-data` misses                                                             |
-| no mutation by collection    | `no-restricted-properties` (`.set`, `.delete`, `.add`)                         | `WeakMap.set`/`delete` and `WeakSet.add`/`delete`, which `functional/immutable-data` does not flag                                |
 
 `functional/no-expression-statements`, `functional/no-return-void`,
 `functional/no-classes`, `functional/no-this-expressions`,
@@ -90,12 +92,15 @@ An agent that hits a lock therefore cannot write its way past it in the file it
 is editing. It has to stop and ask. That is the intended behaviour, not an
 accident.
 
-One residual is accepted, and it is narrow. Invoking a `CallableFunction`-typed
-value through `f.call(...)` or `f.apply(...)` is not caught by
-`@typescript-eslint/no-unsafe-call`, which only sees direct `f(...)` calls. It
-needs a `CallableFunction`-typed value to exist first, so it is not reachable
-from ordinary typed code, and no config is added for it. The claim above is
-precise to what the rules cover, not absolute.
+One boundary is deliberate. The locks cover the standard ways mutable code gets
+written: assignment, property writes, mutating methods, loops, `let`, `any`,
+casts, `eval`. They do not cover code that deliberately routes around them, such
+as `Reflect.set`, a `WeakMap` mutator, or a `CallableFunction` invoked through
+`f.call(...)`. Every one of those needs a community rule that cannot express the
+check without hand-written config, and closing them costs more than it is worth:
+at that point writing the code correctly is easier than smuggling. Ordinary
+mutable code hits a lock. Deliberate circumvention does not, and that is
+accepted.
 
 ## Locks Never Relax
 
