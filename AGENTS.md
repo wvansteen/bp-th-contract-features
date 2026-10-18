@@ -36,6 +36,20 @@ The linter enforces these locks as errors:
 For everything the linter cannot check, see
 `docs/guidelines/functional-typescript.md`.
 
+## Where scripts live
+
+`package.json` scripts are the project's commands: anything that needs only the
+pinned runtime and the repo contents, such as build, typecheck, lint, format, or
+running the app itself. Run them with `bun run`.
+
+`mise.toml` tasks are the workspace's commands: anything that needs environment,
+services, containers, or ambient config, such as starting and stopping the local
+stack or wiring the app to Inngest. Run them with `mise run`.
+
+A mise task may call `bun run`, never the other way round. The pre-commit hook
+runs the `bun run` gates, so they must work on a fresh clone with nothing but
+`bun install`.
+
 ## Development loop
 
 Every piece of work follows the same loop. Do not skip steps.
@@ -87,9 +101,9 @@ Two updates go with every feature:
 
 ### 5. Clean up
 
-Before cleaning up a workspace (deleting a worktree, finishing a
-branch), stop its dev environment first with `mise run dev:teardown`,
-so the workspace's containers and networks do not outlive it.
+Before cleaning up a workspace (deleting a worktree, finishing a branch), stop
+its dev environment first with `mise run dev:teardown`, so the workspace's
+containers and networks do not outlive it.
 
 ## Tooling for token-efficient exploration
 
