@@ -30,7 +30,9 @@ documents and lets people interact with them.
 bun install
 ```
 
-Copy `.env.example` to `.env` and fill in the four names the app needs locally:
+Copy `.env.example` to `.env` and fill in the two Box values. Leave the database
+names empty locally: the dev tasks inject them, and production sets them in the
+Vercel project environment.
 
 - `BOX_APP_TOKEN` and `BOX_FOLDER_ID` come from your Box app and the folder to
   ingest from.
