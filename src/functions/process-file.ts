@@ -5,7 +5,7 @@ import type { DocumentStore, StoredDocument } from "../db/document-store";
 export type ProcessFileResult = {
   documentId: string;
   metadata: Record<string, unknown>;
-  upserted: StoredDocument;
+  upserted: { documentId: string; metadata: Record<string, unknown> };
 };
 
 export type ProcessFileSteps = {
@@ -84,10 +84,14 @@ export async function processFileHandler(
 
   const metadata = described;
 
-  const document: StoredDocument = { documentId: params.fileId, metadata };
   const upserted = await steps.run("upsert", async () => {
-    await store.upsert(document);
-    return document;
+    const written = { documentId: params.fileId, metadata };
+    await store.upsert({
+      ...written,
+      document: new Uint8Array(),
+      smartFeatures: {},
+    });
+    return written;
   });
 
   if (!isStoredDocument(upserted)) {
