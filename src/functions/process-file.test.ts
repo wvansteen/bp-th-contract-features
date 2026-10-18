@@ -17,6 +17,7 @@ function boxDescribing(file: Record<string, unknown>): BoxClientPort {
   return {
     listFiles: () => Promise.reject(new Error("not used")),
     describeFile: () => Promise.resolve(file),
+    downloadFile: () => Promise.reject(new Error("not used")),
   };
 }
 
@@ -26,6 +27,7 @@ function boxFailing(error: unknown): BoxClientPort {
     describeFile: () => {
       throw error;
     },
+    downloadFile: () => Promise.reject(new Error("not used")),
   };
 }
 
