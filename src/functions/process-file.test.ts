@@ -159,8 +159,13 @@ describe("process-file", () => {
       listAll: () => Promise.resolve([]),
     };
 
+    const box: BoxClientPort = {
+      ...boxWithContent({ id: "777", name: "notes.txt" }, new Uint8Array([1])),
+      downloadFile: () => Promise.reject(new Error("download must not run")),
+    };
+
     const result = await processFileHandler(
-      boxWithContent({ id: "777", name: "notes.txt" }, new Uint8Array([1])),
+      box,
       passthroughSteps,
       store,
       () => Promise.reject(new Error("classify must not run")),
