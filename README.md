@@ -11,7 +11,6 @@ PoC generative AI pipeline to structure and interact with contract documents.
 - [Usage](#usage)
 - [Development](#development)
 - [Architecture Decisions](#architecture-decisions)
-- [Contributing](#contributing)
 - [License](#license)
 
 ## Background
@@ -101,10 +100,6 @@ round, so the gates work on a fresh clone with nothing but `bun install`.
 ## Architecture Decisions
 
 ADRs live in [`docs/decisions/`](docs/decisions/).
-
-## Contributing
-
-Agent and contributor instructions live in [`AGENTS.md`](AGENTS.md).
 
 ## License
 
