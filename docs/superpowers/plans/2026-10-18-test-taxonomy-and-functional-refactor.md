@@ -98,9 +98,13 @@ Elysia.
 - Produces (the contracts the tests assert against):
   - `listFilesHandler(box: BoxClientPort, steps: ListFilesSteps, params: { folderId: string; maxDocuments: number }): Promise<ListFilesResult>`
   - `ListFilesResult = { pagesFetched: readonly number[]; emitted: readonly SentEvent[] }`
-  - `ListFilesSteps = { run(id: string, fn: () => Promise<unknown>): Promise<unknown>; sendEvent(id: string, events: readonly SentEvent[]): Promise<unknown> }`
+  - `ListFilesSteps = { run(id: string, fn: () => Promise<unknown>): Promise<unknown>; sendEvent(id: string, events: SentEvent[]): Promise<unknown> }`
+    (the SDK's `sendEvent` payload type rejects `readonly`, so the port is
+    relaxed per Step 5's allowance)
   - `processFileHandler(box: BoxClientPort, steps: ProcessFileSteps, store: DocumentStore, params: { fileId: string }): Promise<ProcessFileResult>`
-  - `ProcessFileResult = { documentId: string; metadata: Record<string, unknown> }`
+  - `ProcessFileResult = { documentId: string; metadata: Record<string, unknown>; upserted: StoredDocument }`
+    (`upserted` is the document handed to `store.upsert`: the design's "document
+    upserted" effect-trace fact, so the write is observable from the return)
   - `ProcessFileSteps = { run(id: string, fn: () => Promise<unknown>): Promise<unknown> }`
   - `SentEvent = { id: string; name: string; data: { fileId: string } }`
     (unchanged)
@@ -119,6 +123,10 @@ instead of declaring `async` without awaiting. Tests assert on
   `result.emitted[0].id === "box/process.file/7"`.
 - `caps total processed files across pages, not per page`: with
   `maxDocuments: 3` over three pages, `result.emitted` is `["1","2","3"]`.
+- `stops fetching once the cap is reached`: with pages of 100 files,
+  `totalCount: 400`, and `maxDocuments: 100`, `result.pagesFetched` is `[0]` and
+  `result.emitted.length` is 100. The cap stops the walk before the next fetch,
+  not after it.
 - `walks every page when the folder is larger than one page`:
   `result.pagesFetched` is `[0,100,200]`.
 - `stops correctly when totalCount is not a multiple of page size`:
@@ -143,9 +151,12 @@ shape does not exist yet).
 `listFilesHandler` becomes a recursion (no loop, no mutable accumulators): a
 helper takes `(offset, processed, pages, emitted)` and returns
 `ListFilesResult`, advancing with `offset + PAGE_SIZE` and
-`processed + batch.length` as arguments. Constants stay `PAGE_SIZE = 100` and
-the existing step IDs (`page-${offset}`, `emit-${offset}`) and event shape
-(`id: "box/process.file/${file.id}"`). `steps.run` results are validated with an
+`processed + batch.length` as arguments. The walk's entry condition is the cap
+itself: when `processed >= maxDocuments`, return the accumulated result without
+fetching, mirroring the pre-rewrite `while (processed < maxDocuments)` guard.
+Constants stay `PAGE_SIZE = 100` and the existing step IDs (`page-${offset}`,
+`emit-${offset}`) and event shape (`id: "box/process.file/${file.id}"`).
+`steps.run` results are validated with an
 `isBoxPage(value: unknown): value is BoxPage` guard that throws on shape
 mismatch. Preserve: `type === "file"` filtering, the across-pages cap, the
 `batch.length < files.length` early stop, and the
@@ -161,8 +172,11 @@ Run: `bun test src/functions/list-files.test.ts` Expected: PASS.
 Same stub discipline. The Box stub `describeFile` throws plain objects shaped
 `{ responseInfo: { statusCode, headers } }` (no SDK class construction). Tests:
 
-- `describes the file and upserts it`: `result.documentId === "123"`,
-  `result.metadata.name === "contract.pdf"`.
+- `describes the file and upserts it`: the event carries `fileId: "123"` while
+  the described file's own id differs (`"777"`), so keying on the wrong id
+  cannot pass by accident. `result.documentId === "123"`,
+  `result.metadata.name === "contract.pdf"`, and `result.upserted` is
+  `{ documentId: "123", metadata: result.metadata }`.
 - `passes a 404 through as non-retriable`: thrown error is
   `instanceof NonRetriableError`.
 - `passes a 429 Retry-After of seconds through as seconds`: thrown error is
@@ -172,6 +186,8 @@ Same stub discipline. The Box stub `describeFile` throws plain objects shaped
 - `falls back to a 60s wait when Retry-After is an HTTP-date`:
   `retryAfter === "60"`.
 - `rethrows a 429 that carries no Retry-After`: the original error surfaces.
+- `treats an empty Retry-After header as absent`: a `Retry-After: ""` header
+  surfaces the original error, the same bare-429 path.
 - `rethrows failures that are not Box API errors`: a `TypeError` surfaces.
 
 Run: `bun test src/functions/process-file.test.ts` Expected: FAIL.
@@ -184,9 +200,14 @@ Replace `instanceof BoxApiError` with
 (a structural check on `responseInfo`). Keep the two steps (`describe-file`,
 `upsert`) and the error mapping unchanged: 404 to `NonRetriableError`, 429 with
 delta-seconds to `RetryAfterError` in milliseconds, 429 with an HTTP-date to a
-60s wait, bare 429 and everything else rethrown. The describe step result is
-validated with an `isRecord` guard into `metadata`. The handler returns
-`{ documentId, metadata }`.
+60s wait, bare 429 and everything else rethrown. A `Retry-After` header that is
+empty counts as absent (the pre-rewrite truthy check), so it takes the bare-429
+path. The describe step result is validated with an `isRecord` guard into
+`metadata`. The `upsert` step's thunk returns the `StoredDocument` it wrote; the
+handler validates that step result with a small type guard (the ports return
+`Promise<unknown>` and the locks forbid assertions) and returns it as
+`upserted`, so deleting the upsert step breaks the tests. The handler returns
+`{ documentId, metadata, upserted }`.
 
 `src/box/client.ts`: `describeFile` returns `Promise<unknown>` (the SDK object
 as-is); delete the `as unknown as` cast and update `BoxClientPort` to match.
