@@ -3,7 +3,7 @@
   "type": "module",
   "packageManager": "bun@1.2.23",
   "scripts": {
-    "dev": "bun --hot src/index.ts",
+    "dev": "bun --hot src/main.ts",
     "build": "bun build src/index.ts --target bun --outdir ./dist",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
@@ -12,7 +12,7 @@
     "prepare": "husky",
     "test": "bun test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "bun --env-file=.env x drizzle-kit migrate"
+    "db:migrate": "bun x drizzle-kit migrate"
   },
   "dependencies": {
     "@elysiajs/static": "^1.4.10",

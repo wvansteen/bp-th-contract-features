@@ -20,3 +20,5 @@ and this project adheres to
 - Lake County, Illinois branded `Contract Investigation` page at `/`, with the
   chat embedded as a bottom-right assistant that streams replies from a local
   Ollama model; `/chat` redirects to `/`.
+- Vercel deployment: one Vercel Function on the Bun runtime, migrations applied
+  at build time.

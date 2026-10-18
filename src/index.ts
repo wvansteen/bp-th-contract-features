@@ -20,9 +20,6 @@ const app = new Elysia()
     }),
   )
   .use(createContractsRoutes({ inngest, store: documentStore }))
-  .all("/api/inngest", ({ request }) => handler(request))
-  .listen(0);
+  .all("/api/inngest", ({ request }) => handler(request));
 
-console.log(
-  `Elysia listening on http://${app.server?.hostname}:${app.server?.port}`,
-);
+export default app;
