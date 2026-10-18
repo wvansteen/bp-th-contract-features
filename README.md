@@ -10,6 +10,7 @@ PoC generative AI pipeline to structure and interact with contract documents.
 - [Install](#install)
 - [Usage](#usage)
 - [Development](#development)
+- [Deployment](#deployment)
 - [Architecture Decisions](#architecture-decisions)
 - [License](#license)
 
@@ -29,9 +30,16 @@ documents and lets people interact with them.
 bun install
 ```
 
-Copy `.env.example` to `.env` and fill in `BOX_APP_TOKEN` and `BOX_FOLDER_ID`.
-The dev tasks inject `DATABASE_URL` from the stack's published port, so no
-connection string is stored.
+Copy `.env.example` to `.env` and fill in the four names the app needs locally:
+
+- `BOX_APP_TOKEN` and `BOX_FOLDER_ID` come from your Box app and the folder to
+  ingest from.
+- `DATABASE_URL` is the app's Postgres URL. The local dev tasks inject it from
+  the stack's published port, so no connection string is stored.
+- `DATABASE_URL_UNPOOLED` is the URL migrations run against. The local
+  `db:migrate` task injects the same stack URL. For production, set both
+  database names in the Vercel project environment: the pooled Neon URL as
+  `DATABASE_URL` and the unpooled one as `DATABASE_URL_UNPOOLED`.
 
 ## Usage
 
@@ -96,6 +104,22 @@ The pre-commit hook runs all four and rejects the commit on failure.
 `mise run` covers the workspace side: the local stack and its wiring. `bun run`
 covers the project side. A mise task may call `bun run`, never the other way
 round, so the gates work on a fresh clone with nothing but `bun install`.
+
+## Deployment
+
+The Vercel project is git-connected, with `main` as the production branch.
+`vercel.json` selects the Bun runtime and sets `bun run db:migrate` as the build
+command, so migrations run against `DATABASE_URL_UNPOOLED` before traffic
+arrives. The same file bundles `public/` and the Deep Chat assets into the one
+function.
+
+The build step needs the project environment set first: `DATABASE_URL` (pooled
+Neon), `DATABASE_URL_UNPOOLED`, `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and the
+Inngest keys. After the first deploy, sync Inngest against the deployed host:
+
+```sh
+curl -X PUT https://<host>/api/inngest
+```
 
 ## Architecture Decisions
 
