@@ -11,9 +11,8 @@ const handler = serve({
 });
 
 const app = new Elysia()
-  .get("/", () => ({ ok: true }))
-  .all("/api/inngest", ({ request }) => handler(request))
-  .get("/chat", () => Bun.file("public/index.html"))
+  .get("/", () => Bun.file("public/index.html"))
+  .get("/lake-county.css", () => Bun.file("public/lake-county.css"))
   .use(
     await staticPlugin({
       prefix: "/deep-chat",
@@ -21,6 +20,7 @@ const app = new Elysia()
     }),
   )
   .use(createContractsRoutes({ inngest, store: documentStore }))
+  .all("/api/inngest", ({ request }) => handler(request))
   .listen(0);
 
 console.log(
