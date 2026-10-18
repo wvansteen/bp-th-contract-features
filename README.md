@@ -75,11 +75,11 @@ List stored document metadata:
 curl http://localhost:<port>/contracts
 ```
 
-- `GET /` returns `{ ok: true }`.
-- `GET /chat` serves a chat page that streams replies from a local
-  [Ollama](https://ollama.com/) model.
+- `GET /` serves the Lake County, Illinois branded `Contract Investigation`
+  page, with the chat embedded as a bottom-right assistant that streams replies
+  from a local [Ollama](https://ollama.com/) model; `/chat` redirects to `/`.
 
-The chat page carries its Ollama settings in `public/index.html`; nothing
+The page carries the chat's Ollama settings in `public/index.html`; nothing
 server-side reads Ollama environment variables.
 
 ## Development

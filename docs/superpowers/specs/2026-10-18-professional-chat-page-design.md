@@ -50,9 +50,9 @@ functionally fine and visually unprofessional; the change is presentation only.
   at `min(380px, calc(100vw - 2rem))`, and on viewports under 640px it spans the
   bottom as a sheet. Page content gets right padding on wide screens so the
   panel does not cover text.
-- **Styling targets deep-chat's own CSS custom properties** (message colors,
-  input area, submit button) inside the panel, so the component matches the
-  brand without forking it.
+- **Styling targets deep-chat's documented JSON style attributes** (`chatStyle`,
+  `inputAreaStyle`, `submitButtonStyles`, `messageStyles` on the `<deep-chat>`
+  element), so the component matches the brand without forking it.
 - **Lake County identity**: navy masthead with a text wordmark ("Lake County,
   Illinois" plus "Contract Investigation"), `#0073BB` accents and buttons,
   Figtree with a system-sans fallback. No hotlinked logo asset: the wordmark is
@@ -64,7 +64,8 @@ functionally fine and visually unprofessional; the change is presentation only.
   stays factual.
 - Exact panel height and internal layout, within the width and position rules
   above.
-- Which deep-chat CSS variables to set, as long as the panel reads as one brand.
+- Which deep-chat style attributes to set, as long as the panel reads as one
+  brand.
 
 ## Confirmation
 
