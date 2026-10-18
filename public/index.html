@@ -28,8 +28,8 @@
           Contract Investigation reads the contract documents you give it and
           answers questions about them. Ask about terms, dates, obligations, or
           risks in everyday language, and the assistant replies with what the
-          documents say. It runs against a model on this machine, so contract
-          text stays local.
+          documents say. The assistant answers through this site's own API,
+          using a hosted language model.
         </p>
       </section>
     </main>
@@ -49,24 +49,13 @@
 
     <script type="module">
       const chat = document.getElementById("chat");
-      chat.directConnection = {
-        ollama: {
-          // The browser posts to Ollama directly; no proxy is involved. The
-          // endpoint is built into the component
-          // (http://localhost:11434/api/chat) and is not configurable here,
-          // so do not add a url key: it would be merged into the request body
-          // and ignored.
-          model: "llama3.2:latest",
-          // Keep the whole conversation in the request body.
-          maxMessages: -1,
-          // The component defaults this to false, which makes Ollama send one
-          // complete object instead of NDJSON, so the reply renders all at
-          // once. Set it explicitly or replies stop appearing token by token.
-          stream: true,
-        },
-      };
+      chat.connect = { url: "/api/chat", stream: true };
+      // Keep the whole conversation in the request body. Without this,
+      // deep-chat sends only the latest input and follow-up questions lose
+      // their context.
+      chat.requestBodyLimits = { maxMessages: 0 };
       chat.introMessage = {
-        text: "Ask me anything. I am running locally on Ollama.",
+        text: "Ask me anything. I am the Contract Investigation assistant.",
       };
     </script>
   </body>
