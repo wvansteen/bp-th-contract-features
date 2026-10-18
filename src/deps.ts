@@ -4,12 +4,11 @@ import { createDbClient } from "./db/client";
 import { createDrizzleDocumentStore } from "./db/document-store";
 
 const env = loadEnv();
-const { db, client: pgPool } = createDbClient(env.databaseUrl);
+const { db } = createDbClient(env.databaseUrl);
 
 export const boxClient = createBoxClient({ token: env.boxAppToken });
 export const documentStore = createDrizzleDocumentStore(db);
 export const boxFolderId = env.boxFolderId;
-export { pgPool };
 
 // The structural subset of `Inngest` the routes need. `Inngest` satisfies it,
 // and so does a plain object in tests.

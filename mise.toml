@@ -9,6 +9,7 @@ description = "Start the local stack and print its URLs"
 run = """
 podman compose up -d --wait
 echo "Inngest UI: http://127.0.0.1:$(podman compose port inngest 8288 | cut -d: -f2)"
+echo "Postgres:   postgresql://bp:bp@127.0.0.1:$(podman compose port postgres 5432 | cut -d: -f2)/contracts"
 """
 
 [tasks."dev:teardown"]
@@ -20,6 +21,7 @@ description = "Run the Elysia API on an auto-selected port"
 depends = ["dev:setup"]
 run = """
 export INNGEST_DEV="http://127.0.0.1:$(podman compose port inngest 8288 | cut -d: -f2)"
+export DATABASE_URL="postgresql://bp:bp@127.0.0.1:$(podman compose port postgres 5432 | cut -d: -f2)/contracts"
 LOG=$(mktemp)
 bun run dev 2>&1 | tee "$LOG" &
 for _ in $(seq 100); do
@@ -33,10 +35,10 @@ echo
 wait
 """
 
-[tasks."dev:send"]
-description = "Send the demo event to the local stack"
+[tasks."db:migrate"]
+description = "Apply Drizzle migrations to the local Postgres"
 depends = ["dev:setup"]
 run = """
-export INNGEST_DEV="http://127.0.0.1:$(podman compose port inngest 8288 | cut -d: -f2)"
-exec bun run src/send.ts
+export DATABASE_URL="postgresql://bp:bp@127.0.0.1:$(podman compose port postgres 5432 | cut -d: -f2)/contracts"
+bun run db:migrate
 """

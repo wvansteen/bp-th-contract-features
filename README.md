@@ -11,6 +11,7 @@ PoC generative AI pipeline to structure and interact with contract documents.
 - [Usage](#usage)
 - [Development](#development)
 - [Architecture Decisions](#architecture-decisions)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## Background
@@ -29,23 +30,24 @@ documents and lets people interact with them.
 bun install
 ```
 
-Copy `.env.example` to `.env` and fill in `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and
-`DATABASE_URL`.
+Copy `.env.example` to `.env` and fill in `BOX_APP_TOKEN` and `BOX_FOLDER_ID`.
+The dev tasks inject `DATABASE_URL` from the stack's published port, so no
+connection string is stored.
 
 ## Usage
 
 ```sh
-<<<<<<< HEAD
-mise run dev:setup     # start the stack; prints the Inngest UI URL
+mise run dev:setup     # start the stack; prints the Inngest UI and Postgres URLs
 mise run dev           # Elysia API on an auto-selected port, printed at startup
-mise run dev:send      # send the demo event
 mise run dev:teardown  # stop the stack
 ```
 
-Nothing binds a fixed port: Podman assigns the Inngest dev server's ports and
-the app asks the OS for one, so every workspace gets its own and several can run
-at the same time. The dev tasks read the stack's addresses straight from Podman
-and pass them to the app process, so no ports are written down anywhere.
+Nothing binds a fixed port: Podman assigns the Inngest dev server's and
+Postgres's host ports, and the app asks the OS for one, so every workspace gets
+its own and several can run at the same time. The dev tasks read the stack's
+addresses straight from Podman and pass them to the app process, so no ports are
+written down anywhere; `mise run dev:setup` prints the Inngest UI and Postgres
+URLs, and `mise run db:migrate` applies migrations to the running database.
 End-to-end checks read the app's port from its startup output
 (`Elysia listening on http://...:<port>`) to build their curl commands.
 
@@ -63,7 +65,7 @@ curl -X PUT http://host.containers.internal:<port>/api/inngest \
 Trigger an ingest run:
 
 ```sh
-curl -X POST http://localhost:3000/process-contracts \
+curl -X POST http://localhost:<port>/process-contracts \
   -H "Content-Type: application/json" \
   -d '{"maxDocuments": 10}'
 ```
@@ -71,7 +73,7 @@ curl -X POST http://localhost:3000/process-contracts \
 List stored document metadata:
 
 ```sh
-curl http://localhost:3000/contracts
+curl http://localhost:<port>/contracts
 ```
 
 - `GET /` returns `{ ok: true }`.

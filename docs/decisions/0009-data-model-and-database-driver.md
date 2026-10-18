@@ -50,13 +50,19 @@ column stores the Box SDK response verbatim, so `{value}`-wrapped dates and the
 
 ### Confirmation
 
-Task 5's `src/db/document-store.test.ts` runs against a real Postgres. It
-creates and migrates a throwaway database, so it never truncates or writes the
-developer's `contracts` data, then drops that database. It upserts `documentId`
-"1" twice and "2" once and asserts two rows remain with "1" carrying the newest
-metadata. A second test re-upserts "1" and asserts `listAll` returns the same
-order as before, and that the order is sorted. Run `bun run dev:setup`, then
-`bun test src/db/document-store.test.ts`; `podman compose down` cleans up.
+The `document_id` primary key the conflict-safe upsert targets is present in the
+generated migration. Confirmed by this command, which exits non-zero if the
+column or its primary key is dropped:
+
+```sh
+grep -q '"document_id" text PRIMARY KEY' drizzle/0000_narrow_saracen.sql
+```
+
+The live check is the manual smoke: after `mise run dev:setup` and
+`mise run db:migrate`, `POST /process-contracts` followed by `GET /contracts`
+returns the ingested rows. The deleted `document-store.test.ts` was the only
+automated coverage of the upsert; the accepted gap is recorded in the refactor
+spec.
 
 ## More Information
 

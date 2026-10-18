@@ -162,9 +162,9 @@ step ceiling is never the binding constraint here: `maxDocuments` is capped at
 - Drizzle ORM + postgres.js for database
 - Postgres 16
 
-ADR-0006 records the Box authentication method and ADR-0007 the data model and
+ADR-0008 records the Box authentication method and ADR-0009 the data model and
 database driver.
 
 ## Auth
 
-Box API developer token (see ADR-0006). Passed as `BOX_APP_TOKEN` env var.
+Box API developer token (see ADR-0008). Passed as `BOX_APP_TOKEN` env var.

@@ -30,7 +30,7 @@ ORM, postgres.js, Postgres 16
 - TypeScript on Bun, mostly functional style
 - No env access outside `src/config/env.ts` and `src/deps.ts`
 - Box auth: developer token via `BOX_APP_TOKEN`, wrapped by
-  `BoxDeveloperTokenAuth` (see ADR-0006)
+  `BoxDeveloperTokenAuth` (see ADR-0008)
 - Box folder id: `BOX_FOLDER_ID` env var, injected into handlers — never
   hardcoded in a function
 - Rate limiting: honor Box's `429` + `Retry-After`; Inngest `throttle` on
@@ -1764,8 +1764,8 @@ git commit -m "test: cover document store upsert and ordering against Postgres"
 
 **Files:**
 
-- Create: `docs/decisions/0006-box-api-authentication.md`
-- Create: `docs/decisions/0007-data-model-and-database-driver.md`
+- Create: `docs/decisions/0008-box-api-authentication.md`
+- Create: `docs/decisions/0009-data-model-and-database-driver.md`
 - Modify: `README.md`
 - Modify: `CHANGELOG.md`
 - Modify: `AGENTS.md`
@@ -1779,13 +1779,13 @@ git commit -m "test: cover document store upsert and ordering against Postgres"
 
 Run: `ls docs/decisions/`
 
-`0000` through `0005` are taken (0005 is the chat UI ADR that landed on main),
-so the next free numbers are `0006` and `0007`. Do not reuse `0001`. Two ADRs
-are written below: Box auth and the data model.
+`0000` through `0007` are in use (one duplicate 0006 lives on `main`), so these
+two ADRs take `0008` and `0009`. Do not reuse `0001`. Two ADRs are written
+below: Box auth and the data model.
 
 - [ ] **Step 2: Write the ADR**
 
-Create `docs/decisions/0006-box-api-authentication.md`, following
+Create `docs/decisions/0008-box-api-authentication.md`, following
 `docs/decisions/adr-template.md`:
 
 ````markdown
@@ -1856,7 +1856,7 @@ the `### Confirmation` element AGENTS.md requires.
 
 - [ ] **Step 3: Write the data-model ADR**
 
-Create `docs/decisions/0007-data-model-and-database-driver.md`, following
+Create `docs/decisions/0009-data-model-and-database-driver.md`, following
 `docs/decisions/adr-template.md`:
 
 ```markdown
@@ -2031,7 +2031,7 @@ generated `drizzle/` migration.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add docs/decisions/0006-box-api-authentication.md docs/decisions/0007-data-model-and-database-driver.md README.md CHANGELOG.md AGENTS.md
+git add docs/decisions/0008-box-api-authentication.md docs/decisions/0009-data-model-and-database-driver.md README.md CHANGELOG.md AGENTS.md
 git commit -m "docs: add Box auth ADR and update README, CHANGELOG, AGENTS.md"
 ```
 

@@ -1,4 +1,4 @@
-import type { BoxClientPort, BoxPage } from "../box/client";
+import type { BoxClientPort, BoxFileEntry, BoxPage } from "../box/client";
 
 export type SentEvent = { id: string; name: string; data: { fileId: string } };
 
@@ -17,10 +17,25 @@ const PAGE_SIZE = 100;
 // Step results are JSON round-tripped between attempts, so their shape cannot
 // be trusted from the type alone. A mismatch is an error rather than a silent
 // truncation of the walk.
+function isBoxEntry(value: unknown): value is BoxFileEntry {
+  if (typeof value !== "object" || value === null) return false;
+  if (!("id" in value) || !("type" in value) || !("name" in value))
+    return false;
+  return (
+    typeof value.id === "string" &&
+    typeof value.type === "string" &&
+    typeof value.name === "string"
+  );
+}
+
 function isBoxPage(value: unknown): value is BoxPage {
   if (typeof value !== "object" || value === null) return false;
   if (!("entries" in value) || !("totalCount" in value)) return false;
-  return Array.isArray(value.entries) && typeof value.totalCount === "number";
+  return (
+    Array.isArray(value.entries) &&
+    typeof value.totalCount === "number" &&
+    value.entries.every(isBoxEntry)
+  );
 }
 
 async function walk(

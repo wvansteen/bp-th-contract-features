@@ -147,6 +147,26 @@ describe("list-files", () => {
 
     expect(result.emitted.map((e) => e.data.fileId)).toEqual(["1"]);
   });
+
+  it("rejects a malformed entry shape rather than throwing from filter", async () => {
+    // Step results are JSON round-tripped, so a page can be typed correctly and
+    // still be malformed at runtime. The guard is checked on the step result,
+    // which is why this stub returns the bad shape from `run`.
+    const malformedSteps: ListFilesSteps = {
+      run: () => Promise.resolve({ entries: [{}], totalCount: 1 }),
+      sendEvent: () => Promise.resolve(undefined),
+    };
+
+    const failure = await listFilesHandler(
+      boxWithPages({}),
+      malformedSteps,
+      folder,
+    ).catch((error: unknown) => error);
+
+    expect(failure instanceof Error ? failure.message : undefined).toBe(
+      "Box returned an unexpected page at offset 0",
+    );
+  });
 });
 
 describe("list-files replay safety", () => {
