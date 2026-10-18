@@ -36,7 +36,10 @@ export async function processFileHandler(
       if (status === 429 && retryAfter) {
         const seconds = Number.parseInt(retryAfter, 10);
         const waitMs = Number.isFinite(seconds) ? seconds * 1000 : 60_000;
-        throw new RetryAfterError(`Box throttled file ${params.fileId}`, waitMs);
+        throw new RetryAfterError(
+          `Box throttled file ${params.fileId}`,
+          waitMs,
+        );
       }
 
       throw error;

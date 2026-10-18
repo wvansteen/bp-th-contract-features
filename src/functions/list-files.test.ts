@@ -4,13 +4,17 @@ import { listFilesHandler, type ListFilesSteps } from "./list-files";
 
 type SentEvent = { id: string; name: string; data: { fileId: string } };
 
-function fakeBox(pages: BoxPage[]): BoxClientPort & { calls: Array<{ offset: number; limit: number }> } {
+function fakeBox(
+  pages: BoxPage[],
+): BoxClientPort & { calls: Array<{ offset: number; limit: number }> } {
   const calls: Array<{ offset: number; limit: number }> = [];
   return {
     calls,
     async listFiles({ offset, limit }) {
       calls.push({ offset, limit });
-      return pages[Math.floor(offset / limit)] ?? { entries: [], totalCount: 0 };
+      return (
+        pages[Math.floor(offset / limit)] ?? { entries: [], totalCount: 0 }
+      );
     },
     async describeFile() {
       throw new Error("not used");
@@ -18,7 +22,11 @@ function fakeBox(pages: BoxPage[]): BoxClientPort & { calls: Array<{ offset: num
   };
 }
 
-function fakeSteps(): { steps: ListFilesSteps; sent: SentEvent[]; stepIds: string[] } {
+function fakeSteps(): {
+  steps: ListFilesSteps;
+  sent: SentEvent[];
+  stepIds: string[];
+} {
   const sent: SentEvent[] = [];
   const stepIds: string[] = [];
   const steps: ListFilesSteps = {
@@ -58,7 +66,9 @@ describe("list-files", () => {
   });
 
   it("gives every event a stable id so redelivery cannot start a second run", async () => {
-    const box = fakeBox([{ entries: [{ id: "7", type: "file", name: "a.pdf" }], totalCount: 1 }]);
+    const box = fakeBox([
+      { entries: [{ id: "7", type: "file", name: "a.pdf" }], totalCount: 1 },
+    ]);
     const { steps, sent } = fakeSteps();
 
     await listFilesHandler(box, steps, folder);
@@ -96,7 +106,10 @@ describe("list-files", () => {
   it("stops correctly when totalCount is not a multiple of page size", async () => {
     const box = fakeBox([
       {
-        entries: [{ id: "1", type: "file", name: "a.pdf" }, { id: "2", type: "file", name: "b.pdf" }],
+        entries: [
+          { id: "1", type: "file", name: "a.pdf" },
+          { id: "2", type: "file", name: "b.pdf" },
+        ],
         totalCount: 101,
       },
       { entries: [{ id: "3", type: "file", name: "c.pdf" }], totalCount: 101 },
@@ -144,7 +157,8 @@ describe("list-files replay safety", () => {
     const box: BoxClientPort = {
       async listFiles({ offset }) {
         calls.push(offset);
-        const ids = offset === 0 ? ["1", "2"] : offset === 100 ? ["3", "4"] : ["5"];
+        const ids =
+          offset === 0 ? ["1", "2"] : offset === 100 ? ["3", "4"] : ["5"];
         return {
           entries: ids.map((id) => ({ id, type: "file", name: `${id}.pdf` })),
           totalCount: 201,
@@ -182,7 +196,13 @@ describe("list-files replay safety", () => {
       },
     };
 
-    return { steps, sentAll, failOnceOn: (id: string) => { failOn = id; } };
+    return {
+      steps,
+      sentAll,
+      failOnceOn: (id: string) => {
+        failOn = id;
+      },
+    };
   }
 
   it("rebuilds loop state from memoized steps after a mid-loop failure", async () => {
@@ -202,6 +222,12 @@ describe("list-files replay safety", () => {
     // walks the memoized prefix instead of re-running it.
     expect(calls).toEqual([0, 100, 200]);
     // And each page's fan-out was sent exactly once.
-    expect(steps.sentAll.map((e) => e.data.fileId)).toEqual(["1", "2", "3", "4", "5"]);
+    expect(steps.sentAll.map((e) => e.data.fileId)).toEqual([
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+    ]);
   });
 });

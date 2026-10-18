@@ -15,16 +15,16 @@ handlers stay testable without a database.
 
 ## Decision Drivers
 
-* A conflict-safe upsert, since ingest is at-least-once and a file can be
+- A conflict-safe upsert, since ingest is at-least-once and a file can be
   processed more than once
-* One schema definition shared by the adapter and the migrations
-* Tests that do not need a database
+- One schema definition shared by the adapter and the migrations
+- Tests that do not need a database
 
 ## Considered Options
 
-* Drizzle ORM with postgres.js
-* Drizzle ORM with node-postgres
-* Raw SQL with postgres.js and no query builder
+- Drizzle ORM with postgres.js
+- Drizzle ORM with node-postgres
+- Raw SQL with postgres.js and no query builder
 
 ## Decision Outcome
 
@@ -37,16 +37,16 @@ column stores the Box SDK response verbatim, so `{value}`-wrapped dates and the
 
 ### Consequences
 
-* Good, because `onConflictDoUpdate` on `document_id` is what makes a redelivered
-  event idempotent.
-* Good, because `drizzle-kit` generates and applies the migration from the same
+- Good, because `onConflictDoUpdate` on `document_id` is what makes a
+  redelivered event idempotent.
+- Good, because `drizzle-kit` generates and applies the migration from the same
   schema file.
-* Bad, because Drizzle's generic query types are intricate, so the adapter is
+- Bad, because Drizzle's generic query types are intricate, so the adapter is
   the only place in the codebase that touches them.
-* Bad, because each file is sent with the stable event id
-  `box/process.file/<fileId>` and Inngest deduplicates that id for 24 hours, so a
-  file whose processing exhausts its retries cannot be re-run automatically until
-  the window passes (manual replay or wait).
+- Bad, because each file is sent with the stable event id
+  `box/process.file/<fileId>` and Inngest deduplicates that id for 24 hours, so
+  a file whose processing exhausts its retries cannot be re-run automatically
+  until the window passes (manual replay or wait).
 
 ### Confirmation
 

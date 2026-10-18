@@ -3,7 +3,9 @@ import type { InngestEventSender } from "../deps";
 import type { DocumentStore } from "../db/document-store";
 import { createContractsRoutes } from "./contracts";
 
-function fakeInngest(): InngestEventSender & { events: Array<{ name: string; data: unknown }> } {
+function fakeInngest(): InngestEventSender & {
+  events: Array<{ name: string; data: unknown }>;
+} {
   const events: Array<{ name: string; data: unknown }> = [];
   return {
     events,
@@ -13,7 +15,9 @@ function fakeInngest(): InngestEventSender & { events: Array<{ name: string; dat
   };
 }
 
-function fakeStore(docs: Array<{ documentId: string; metadata: Record<string, unknown> }>): DocumentStore {
+function fakeStore(
+  docs: Array<{ documentId: string; metadata: Record<string, unknown> }>,
+): DocumentStore {
   return {
     async upsert() {},
     async listAll() {
@@ -51,7 +55,10 @@ describe("POST /process-contracts", () => {
         throw new Error("inngest unreachable");
       },
     };
-    const app = createContractsRoutes({ inngest: failing, store: fakeStore([]) });
+    const app = createContractsRoutes({
+      inngest: failing,
+      store: fakeStore([]),
+    });
 
     const response = await app.handle(post({ maxDocuments: 5 }));
 
@@ -59,20 +66,29 @@ describe("POST /process-contracts", () => {
   });
 
   it("returns 422 when maxDocuments is missing", async () => {
-    const app = createContractsRoutes({ inngest: fakeInngest(), store: fakeStore([]) });
+    const app = createContractsRoutes({
+      inngest: fakeInngest(),
+      store: fakeStore([]),
+    });
     const response = await app.handle(post({}));
     expect(response.status).toBe(422);
   });
 
   it("returns 422 when maxDocuments is not a positive integer", async () => {
-    const app = createContractsRoutes({ inngest: fakeInngest(), store: fakeStore([]) });
+    const app = createContractsRoutes({
+      inngest: fakeInngest(),
+      store: fakeStore([]),
+    });
     expect((await app.handle(post({ maxDocuments: 0 }))).status).toBe(422);
     expect((await app.handle(post({ maxDocuments: -1 }))).status).toBe(422);
     expect((await app.handle(post({ maxDocuments: 1.5 }))).status).toBe(422);
   });
 
   it("returns 422 when maxDocuments exceeds the per-request cap", async () => {
-    const app = createContractsRoutes({ inngest: fakeInngest(), store: fakeStore([]) });
+    const app = createContractsRoutes({
+      inngest: fakeInngest(),
+      store: fakeStore([]),
+    });
     expect((await app.handle(post({ maxDocuments: 1001 }))).status).toBe(422);
   });
 });
@@ -87,13 +103,19 @@ describe("GET /contracts", () => {
       ]),
     });
 
-    const response = await app.handle(new Request("http://localhost/contracts"));
+    const response = await app.handle(
+      new Request("http://localhost/contracts"),
+    );
     const body = await response.json();
 
     expect(response.status).toBe(200);
     // Set comparison, not an ordered one. Ordering is the Drizzle adapter's
     // contract and needs a real database to verify, not a fixed fake array.
-    expect([...body].sort((a: any, b: any) => a.documentId.localeCompare(b.documentId))).toEqual([
+    expect(
+      [...body].sort((a: any, b: any) =>
+        a.documentId.localeCompare(b.documentId),
+      ),
+    ).toEqual([
       { documentId: "1", metadata: { name: "contract.pdf" } },
       { documentId: "2", metadata: { name: "nda.pdf" } },
     ]);

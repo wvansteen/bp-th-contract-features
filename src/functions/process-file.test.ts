@@ -63,8 +63,12 @@ describe("process-file", () => {
     };
 
     const { steps } = fakeSteps();
-    await processFileHandler(fakeBox({ id: "9" }), steps, store, { fileId: "9" });
-    await processFileHandler(fakeBox({ id: "9" }), steps, store, { fileId: "9" });
+    await processFileHandler(fakeBox({ id: "9" }), steps, store, {
+      fileId: "9",
+    });
+    await processFileHandler(fakeBox({ id: "9" }), steps, store, {
+      fileId: "9",
+    });
 
     // Conflict handling is the adapter's job, which is what makes redelivery
     // safe. The port exposes no insert path at all.
@@ -80,7 +84,9 @@ describe("process-file", () => {
       },
     };
 
-    await processFileHandler(fakeBox({ id: "5" }), steps, store, { fileId: "5" });
+    await processFileHandler(fakeBox({ id: "5" }), steps, store, {
+      fileId: "5",
+    });
 
     expect(stepIds).toEqual(["describe-file", "upsert"]);
   });
@@ -119,7 +125,12 @@ describe("process-file error mapping", () => {
   function boxApiError(status: number, headers: Record<string, string> = {}) {
     return new BoxApiError({
       message: `Box API error: ${status}`,
-      requestInfo: { method: "GET", url: "https://api.box.com/2.0/files/1", queryParams: {}, headers: {} },
+      requestInfo: {
+        method: "GET",
+        url: "https://api.box.com/2.0/files/1",
+        queryParams: {},
+        headers: {},
+      },
       responseInfo: { statusCode: status, headers },
     });
   }
@@ -155,7 +166,9 @@ describe("process-file error mapping", () => {
     const { steps } = fakeSteps();
 
     await expect(
-      processFileHandler(failingBox(boxApiError(404)), steps, noStore, { fileId: "1" }),
+      processFileHandler(failingBox(boxApiError(404)), steps, noStore, {
+        fileId: "1",
+      }),
     ).rejects.toThrow(NonRetriableError);
   });
 
@@ -175,7 +188,9 @@ describe("process-file error mapping", () => {
   it("falls back to a 60s wait when Retry-After is an HTTP-date", async () => {
     const { steps } = fakeSteps();
     const error = await processFileHandler(
-      failingBox(boxApiError(429, { "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT" })),
+      failingBox(
+        boxApiError(429, { "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT" }),
+      ),
       steps,
       noStore,
       { fileId: "1" },
@@ -190,7 +205,9 @@ describe("process-file error mapping", () => {
     const { steps } = fakeSteps();
 
     await expect(
-      processFileHandler(failingBox(boxApiError(429)), steps, noStore, { fileId: "1" }),
+      processFileHandler(failingBox(boxApiError(429)), steps, noStore, {
+        fileId: "1",
+      }),
     ).rejects.toBeInstanceOf(BoxApiError);
   });
 
@@ -198,7 +215,9 @@ describe("process-file error mapping", () => {
     const { steps } = fakeSteps();
 
     await expect(
-      processFileHandler(failingBox(boxApiError(503)), steps, noStore, { fileId: "1" }),
+      processFileHandler(failingBox(boxApiError(503)), steps, noStore, {
+        fileId: "1",
+      }),
     ).rejects.toBeInstanceOf(BoxApiError);
   });
 
@@ -206,7 +225,12 @@ describe("process-file error mapping", () => {
     const { steps } = fakeSteps();
 
     await expect(
-      processFileHandler(failingBox(new Error("socket hang up")), steps, noStore, { fileId: "1" }),
+      processFileHandler(
+        failingBox(new Error("socket hang up")),
+        steps,
+        noStore,
+        { fileId: "1" },
+      ),
     ).rejects.toThrow("socket hang up");
   });
 });

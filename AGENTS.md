@@ -25,9 +25,9 @@ keep. Logging as a side effect is an accepted exception for this PoC.
 
 - **Dependency injection over env access.** Never read env vars or construct
   low-level clients inside a function. Build them at the composition root
-  (`src/deps.ts`) and inject them. Pass capabilities as parameters, not
-  globals. `drizzle.config.ts` is the one exception: it is a `drizzle-kit`
-  CLI file the running app never imports.
+  (`src/deps.ts`) and inject them. Pass capabilities as parameters, not globals.
+  `drizzle.config.ts` is the one exception: it is a `drizzle-kit` CLI file the
+  running app never imports.
 
 ## Style
 
@@ -173,8 +173,8 @@ failures flank neutral and both are wrong: agreeing with the reader to keep
 things comfortable, and performing objectivity to look rigorous.
 
 > Implemented with `step.sendEvent`. One deviation: I dropped the self-emitted
-> paging event, because it forced the counter back into the payload.
-> Everything else matches.
+> paging event, because it forced the counter back into the payload. Everything
+> else matches.
 
 > `processed` cannot live in the payload and keep one run per folder. Pick one:
 > per-page events and a counter, or a single run with a loop. The loop has fewer
@@ -206,8 +206,8 @@ Commit to what the evidence supports. Say what you did not check.
 > Typecheck clean against inngest 4.23.0 and drizzle 0.45.4. 18 tests pass,
 > including one that fails a step mid-loop and re-enters the handler.
 
-> The counter can be a local variable, but only because the loop lives inside one
-> run. Restore the self-emitted event and it goes back in the payload.
+> The counter can be a local variable, but only because the loop lives inside
+> one run. Restore the self-emitted event and it goes back in the payload.
 
 > `package.json` picked up `deep-chat@2.5.1` at 11:25 and it was not my change.
 > I left it alone because a branch carrying both makes the rule edit
@@ -229,8 +229,8 @@ Four failure modes, each a way of avoiding the answer:
   reader already has.
 
 One test for the opening paragraph: if deleting it loses no fact, number, or
-decision, it was filler. End on the last concrete fact. A recap of your own reply
-and an offer to expand are padding.
+decision, it was filler. End on the last concrete fact. A recap of your own
+reply and an offer to expand are padding.
 
 ## Integration
 

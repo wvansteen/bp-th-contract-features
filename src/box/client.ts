@@ -4,7 +4,11 @@ export type BoxFileEntry = { id: string; type: string; name: string };
 export type BoxPage = { entries: BoxFileEntry[]; totalCount: number };
 
 export interface BoxClientPort {
-  listFiles(args: { folderId: string; offset: number; limit: number }): Promise<BoxPage>;
+  listFiles(args: {
+    folderId: string;
+    offset: number;
+    limit: number;
+  }): Promise<BoxPage>;
   describeFile(args: { fileId: string }): Promise<Record<string, unknown>>;
 }
 

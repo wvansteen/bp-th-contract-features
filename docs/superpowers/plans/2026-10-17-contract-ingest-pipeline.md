@@ -29,12 +29,16 @@ ORM, postgres.js, Postgres 16
 
 - TypeScript on Bun, mostly functional style
 - No env access outside `src/config/env.ts` and `src/deps.ts`
-- Box auth: developer token via `BOX_APP_TOKEN`, wrapped by `BoxDeveloperTokenAuth` (see ADR-0006)
-- Box folder id: `BOX_FOLDER_ID` env var, injected into handlers — never hardcoded in a function
-- Rate limiting: honor Box's `429` + `Retry-After`; Inngest `throttle` on `process-file`, which queues rather than discards
+- Box auth: developer token via `BOX_APP_TOKEN`, wrapped by
+  `BoxDeveloperTokenAuth` (see ADR-0006)
+- Box folder id: `BOX_FOLDER_ID` env var, injected into handlers — never
+  hardcoded in a function
+- Rate limiting: honor Box's `429` + `Retry-After`; Inngest `throttle` on
+  `process-file`, which queues rather than discards
 - Concurrency: `{ limit: 1 }` on both functions
 - DB table: `documents` with `document_id` (text PK) and `metadata` (jsonb)
-- `maxDocuments` is capped at 1000 by request validation, for predictable cost and a bounded run
+- `maxDocuments` is capped at 1000 by request validation, for predictable cost
+  and a bounded run
 - Typecheck must pass before any commit (`bun run typecheck`)
 
 ### Platform Limits
@@ -116,19 +120,19 @@ failed `sendEvent` batch may have partially succeeded.
 Add a `postgres` service alongside the existing Inngest dev service:
 
 ```yaml
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: bp
-      POSTGRES_PASSWORD: bp
-      POSTGRES_DB: contracts
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bp -d contracts"]
-      interval: 2s
-      timeout: 3s
-      retries: 15
+postgres:
+  image: postgres:16-alpine
+  environment:
+    POSTGRES_USER: bp
+    POSTGRES_PASSWORD: bp
+    POSTGRES_DB: contracts
+  ports:
+    - "5432:5432"
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U bp -d contracts"]
+    interval: 2s
+    timeout: 3s
+    retries: 15
 ```
 
 The healthcheck is load-bearing. `podman compose up -d` returns before Postgres
@@ -137,13 +141,12 @@ intermittently on a cold image and reads as a plan bug.
 
 - [ ] **Step 2: Add dependencies**
 
-Run: `bun add drizzle-orm postgres box-node-sdk`
-Run: `bun add -d drizzle-kit @types/bun`
-Run: `bun add -d typescript@5.9.3`
+Run: `bun add drizzle-orm postgres box-node-sdk` Run:
+`bun add -d drizzle-kit @types/bun` Run: `bun add -d typescript@5.9.3`
 
 `typescript` is pinned because `bun run typecheck` gates every commit. Without a
-pin, a `bun add -d typescript` resolves to whatever major ships that month,
-and a new major can change diagnostics on unchanged source.
+pin, a `bun add -d typescript` resolves to whatever major ships that month, and
+a new major can change diagnostics on unchanged source.
 
 - [ ] **Step 3: Add tsconfig.json and a typecheck script**
 
@@ -181,7 +184,8 @@ Add to `package.json` scripts:
 `db:migrate` passes `--env-file` because `drizzle-kit migrate` needs
 `DATABASE_URL` to connect.
 
-Also change the existing `dev:setup` script so the healthcheck is not decorative:
+Also change the existing `dev:setup` script so the healthcheck is not
+decorative:
 
 ```json
 "dev:setup": "podman compose up -d --wait"
@@ -421,9 +425,17 @@ Expected shapes:
 - `client.folders.getFolderItems(folderId, { queryParams: { offset, limit } })`
   → `Items`
 - `client.files.getFileById(fileId)` → `FileFull`
-- `Items.totalCount` — **camelCase**. The raw REST API's `total_count` is renamed by the SDK. Do not use `total_count`.
-- `Items.entries` is `readonly Item[]` where `Item = FileFull | FolderMini | WebLink`, so entries may be folders or web links. Both `entries` and `totalCount` are optional on `Items` itself.
-- On each union member, `id` and `type` are **required** (declared on `FileBase`, `FolderBase`, and `WebLinkBase`), while `name` is **optional**. Verify this by probing rather than by grepping the whole file: `fileFull.d.ts` also contains nested interfaces such as `FileFullLockField` whose fields are optional, and a naive grep for `readonly id?:` matches those instead of the class.
+- `Items.totalCount` — **camelCase**. The raw REST API's `total_count` is
+  renamed by the SDK. Do not use `total_count`.
+- `Items.entries` is `readonly Item[]` where
+  `Item = FileFull | FolderMini | WebLink`, so entries may be folders or web
+  links. Both `entries` and `totalCount` are optional on `Items` itself.
+- On each union member, `id` and `type` are **required** (declared on
+  `FileBase`, `FolderBase`, and `WebLinkBase`), while `name` is **optional**.
+  Verify this by probing rather than by grepping the whole file: `fileFull.d.ts`
+  also contains nested interfaces such as `FileFullLockField` whose fields are
+  optional, and a naive grep for `readonly id?:` matches those instead of the
+  class.
 - Auth is `new BoxClient({ auth: new BoxDeveloperTokenAuth({ token }) })`.
 
 - [ ] **Step 2: Define the port and types**
@@ -499,7 +511,9 @@ export function createBoxClient({ token }: { token: string }): BoxClientPort {
 }
 ```
 
-The SDK handles auth headers and URL building internally. Do not re-add any of that. It does not read Box's `Retry-After` header, so honoring that header is `process-file`'s job (see its `429` mapping below).
+The SDK handles auth headers and URL building internally. Do not re-add any of
+that. It does not read Box's `Retry-After` header, so honoring that header is
+`process-file`'s job (see its `429` mapping below).
 
 - [ ] **Step 4: Decide the test strategy deliberately**
 
@@ -509,7 +523,8 @@ its calls and the test would silently pass without exercising anything.
 
 Instead:
 
-- Task 3 unit-tests the handlers against a hand-written `BoxClientPort` fake. That is where the logic lives.
+- Task 3 unit-tests the handlers against a hand-written `BoxClientPort` fake.
+  That is where the logic lives.
 - Task 7 verifies the real adapter end-to-end against the live API.
 
 - [ ] **Step 5: Commit**
@@ -1034,7 +1049,12 @@ describe("process-file error mapping", () => {
   function boxApiError(status: number, headers: Record<string, string> = {}) {
     return new BoxApiError({
       message: `Box API error: ${status}`,
-      requestInfo: { method: "GET", url: "https://api.box.com/2.0/files/1", queryParams: {}, headers: {} },
+      requestInfo: {
+        method: "GET",
+        url: "https://api.box.com/2.0/files/1",
+        queryParams: {},
+        headers: {},
+      },
       responseInfo: { statusCode: status, headers },
     });
   }
@@ -1070,7 +1090,9 @@ describe("process-file error mapping", () => {
     const { steps } = fakeSteps();
 
     await expect(
-      processFileHandler(failingBox(boxApiError(404)), steps, noStore, { fileId: "1" }),
+      processFileHandler(failingBox(boxApiError(404)), steps, noStore, {
+        fileId: "1",
+      }),
     ).rejects.toThrow(NonRetriableError);
   });
 
@@ -1090,7 +1112,9 @@ describe("process-file error mapping", () => {
   it("falls back to a 60s wait when Retry-After is an HTTP-date", async () => {
     const { steps } = fakeSteps();
     const error = await processFileHandler(
-      failingBox(boxApiError(429, { "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT" })),
+      failingBox(
+        boxApiError(429, { "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT" }),
+      ),
       steps,
       noStore,
       { fileId: "1" },
@@ -1105,7 +1129,9 @@ describe("process-file error mapping", () => {
     const { steps } = fakeSteps();
 
     await expect(
-      processFileHandler(failingBox(boxApiError(429)), steps, noStore, { fileId: "1" }),
+      processFileHandler(failingBox(boxApiError(429)), steps, noStore, {
+        fileId: "1",
+      }),
     ).rejects.toBeInstanceOf(BoxApiError);
   });
 
@@ -1113,7 +1139,9 @@ describe("process-file error mapping", () => {
     const { steps } = fakeSteps();
 
     await expect(
-      processFileHandler(failingBox(boxApiError(503)), steps, noStore, { fileId: "1" }),
+      processFileHandler(failingBox(boxApiError(503)), steps, noStore, {
+        fileId: "1",
+      }),
     ).rejects.toBeInstanceOf(BoxApiError);
   });
 
@@ -1121,7 +1149,12 @@ describe("process-file error mapping", () => {
     const { steps } = fakeSteps();
 
     await expect(
-      processFileHandler(failingBox(new Error("socket hang up")), steps, noStore, { fileId: "1" }),
+      processFileHandler(
+        failingBox(new Error("socket hang up")),
+        steps,
+        noStore,
+        { fileId: "1" },
+      ),
     ).rejects.toThrow("socket hang up");
   });
 });
@@ -1230,7 +1263,10 @@ export async function processFileHandler(
       if (status === 429 && retryAfter) {
         const seconds = Number.parseInt(retryAfter, 10);
         const waitMs = Number.isFinite(seconds) ? seconds * 1000 : 60_000;
-        throw new RetryAfterError(`Box throttled file ${params.fileId}`, waitMs);
+        throw new RetryAfterError(
+          `Box throttled file ${params.fileId}`,
+          waitMs,
+        );
       }
 
       throw error;
@@ -1285,7 +1321,10 @@ Modify `src/inngest.ts`:
 import { Inngest } from "inngest";
 import { boxClient, boxFolderId, documentStore } from "./deps";
 import { listFilesHandler } from "./functions/list-files";
-import { processFileHandler, type ProcessFileSteps } from "./functions/process-file";
+import {
+  processFileHandler,
+  type ProcessFileSteps,
+} from "./functions/process-file";
 
 export const inngest = new Inngest({ id: "contract-features" });
 
@@ -1332,17 +1371,37 @@ export const processFileFn = inngest.createFunction(
 
 Three details that matter, each verified against the installed SDK:
 
-- **Trigger shape is `triggers: [{ event: "..." }]`.** `inngest@4.23.0` types declare `triggers?: InngestFunction.Trigger<string>[]`, and the working `hello.ts` in this repo already uses the array form. Passing a bare `{ event: ... }` as the second argument does not typecheck.
-- **`throttle`, not `rateLimit`.** They are opposites on overflow. Inngest's own JSDoc says `rateLimit` is "a lossy, hard limit. Once the limit is hit, new runs will be skipped. To enqueue work when a rate limit is hit, use the `throttle` parameter" (`inngest/components/InngestFunction.d.ts:172-176`). `throttle` enqueues instead. With `concurrency: { limit: 1 }`, Inngest counts executing steps, so `maxDocuments` documents at 2 steps each serialize well past any one-minute window. `rateLimit` would drop documents with no error and no red run.
-- **`step` is narrowed at the boundary, not typed as `any`.** Inngest's `step.run` returns `Jsonify<Awaited<T>>` through a middleware-transform conditional. For the generic `ProcessFileSteps.run` that is unsatisfiable and `tsc` emits TS2345, so the one cast above is required. For the non-generic `ListFilesSteps.run`, `Jsonify` of a plain-JSON `BoxPage` is `BoxPage`, so `step` is passed straight through. Verified both ways against `inngest@4.23.0`.
+- **Trigger shape is `triggers: [{ event: "..." }]`.** `inngest@4.23.0` types
+  declare `triggers?: InngestFunction.Trigger<string>[]`, and the working
+  `hello.ts` in this repo already uses the array form. Passing a bare
+  `{ event: ... }` as the second argument does not typecheck.
+- **`throttle`, not `rateLimit`.** They are opposites on overflow. Inngest's own
+  JSDoc says `rateLimit` is "a lossy, hard limit. Once the limit is hit, new
+  runs will be skipped. To enqueue work when a rate limit is hit, use the
+  `throttle` parameter" (`inngest/components/InngestFunction.d.ts:172-176`).
+  `throttle` enqueues instead. With `concurrency: { limit: 1 }`, Inngest counts
+  executing steps, so `maxDocuments` documents at 2 steps each serialize well
+  past any one-minute window. `rateLimit` would drop documents with no error and
+  no red run.
+- **`step` is narrowed at the boundary, not typed as `any`.** Inngest's
+  `step.run` returns `Jsonify<Awaited<T>>` through a middleware-transform
+  conditional. For the generic `ProcessFileSteps.run` that is unsatisfiable and
+  `tsc` emits TS2345, so the one cast above is required. For the non-generic
+  `ListFilesSteps.run`, `Jsonify` of a plain-JSON `BoxPage` is `BoxPage`, so
+  `step` is passed straight through. Verified both ways against
+  `inngest@4.23.0`.
 
 - [ ] **Step 10: Delete the hello-world demo**
 
 Run: `git rm src/functions/hello.ts src/send.ts`
 
-Leaving either in place means `src/send.ts` sends `demo/hello.world` to an event with no registered trigger, so it looks like it works while doing nothing. Task 5 removes the matching README line.
+Leaving either in place means `src/send.ts` sends `demo/hello.world` to an event
+with no registered trigger, so it looks like it works while doing nothing. Task
+5 removes the matching README line.
 
-Use `git rm` rather than `rm`, because `git add src/functions/` in the next step stages the `hello.ts` deletion but not a plain `rm` of `src/send.ts`, which sits outside that directory.
+Use `git rm` rather than `rm`, because `git add src/functions/` in the next step
+stages the `hello.ts` deletion but not a plain `rm` of `src/send.ts`, which sits
+outside that directory.
 
 - [ ] **Step 11: Typecheck and commit**
 
@@ -1430,7 +1489,10 @@ describe("POST /process-contracts", () => {
         throw new Error("inngest unreachable");
       },
     };
-    const app = createContractsRoutes({ inngest: failing, store: fakeStore([]) });
+    const app = createContractsRoutes({
+      inngest: failing,
+      store: fakeStore([]),
+    });
 
     const response = await app.handle(post({ maxDocuments: 5 }));
 
@@ -1457,7 +1519,10 @@ describe("POST /process-contracts", () => {
   });
 
   it("returns 422 when maxDocuments exceeds the per-request cap", async () => {
-    const app = createContractsRoutes({ inngest: fakeInngest(), store: fakeStore([]) });
+    const app = createContractsRoutes({
+      inngest: fakeInngest(),
+      store: fakeStore([]),
+    });
     expect((await app.handle(post({ maxDocuments: 1001 }))).status).toBe(422);
   });
 });
@@ -1480,7 +1545,11 @@ describe("GET /contracts", () => {
     expect(response.status).toBe(200);
     // Set comparison, not an ordered one. Ordering is the Drizzle adapter's
     // contract and needs a real database to verify, not a fixed fake array.
-    expect([...body].sort((a: any, b: any) => a.documentId.localeCompare(b.documentId))).toEqual([
+    expect(
+      [...body].sort((a: any, b: any) =>
+        a.documentId.localeCompare(b.documentId),
+      ),
+    ).toEqual([
       { documentId: "1", metadata: { name: "contract.pdf" } },
       { documentId: "2", metadata: { name: "nda.pdf" } },
     ]);
@@ -1588,7 +1657,9 @@ console.log(
 );
 ```
 
-The pool is closed on Ctrl-C and on `SIGTERM`, since a container stop or supervisor shutdown sends `SIGTERM`, and `deps.ts` is imported rather than rebuilding clients.
+The pool is closed on Ctrl-C and on `SIGTERM`, since a container stop or
+supervisor shutdown sends `SIGTERM`, and `deps.ts` is imported rather than
+rebuilding clients.
 
 - [ ] **Step 5: Run tests and typecheck**
 
@@ -1612,9 +1683,11 @@ properties Review Focus #2 depends on, and neither is reachable through the
 fake-backed unit tests. They run here instead.
 
 **Files:**
+
 - Create: `src/db/document-store.test.ts`
 
 **Interfaces:**
+
 - Consumes: `createDrizzleDocumentStore` (Task 3), `documents` (Task 1)
 - Produces: verified conflict-safe upsert and stable ordering
 
@@ -1629,7 +1702,8 @@ import { createDbClient } from "./client";
 import { createDrizzleDocumentStore } from "./document-store";
 
 const databaseUrl =
-  process.env.TEST_DATABASE_URL ?? "postgresql://bp:bp@localhost:5432/contracts";
+  process.env.TEST_DATABASE_URL ??
+  "postgresql://bp:bp@localhost:5432/contracts";
 
 const { db, client } = createDbClient(databaseUrl);
 const store = createDrizzleDocumentStore(db);
@@ -1670,10 +1744,8 @@ describe("createDrizzleDocumentStore", () => {
 
 - [ ] **Step 2: Run against Postgres**
 
-Run: `bun run dev:setup`
-Run: `bun run db:migrate`
-Run: `bun test src/db/document-store.test.ts`
-Expected: PASS (2 tests)
+Run: `bun run dev:setup` Run: `bun run db:migrate` Run:
+`bun test src/db/document-store.test.ts` Expected: PASS (2 tests)
 
 If the second test fails on the ordering assertion, `.orderBy` is missing from
 `listAll`. Without it Postgres returns rows in an unspecified order and an
@@ -1691,6 +1763,7 @@ git commit -m "test: cover document store upsert and ordering against Postgres"
 ### Task 6: Documentation and ADRs
 
 **Files:**
+
 - Create: `docs/decisions/0006-box-api-authentication.md`
 - Create: `docs/decisions/0007-data-model-and-database-driver.md`
 - Modify: `README.md`
@@ -1698,6 +1771,7 @@ git commit -m "test: cover document store upsert and ordering against Postgres"
 - Modify: `AGENTS.md`
 
 **Interfaces:**
+
 - Consumes: everything from Tasks 1-5
 - Produces: shipped feature with complete docs
 
@@ -1705,13 +1779,16 @@ git commit -m "test: cover document store upsert and ordering against Postgres"
 
 Run: `ls docs/decisions/`
 
-`0000` through `0005` are taken (0005 is the chat UI ADR that landed on main), so the next free numbers are `0006` and `0007`. Do not reuse `0001`. Two ADRs are written below: Box auth and the data model.
+`0000` through `0005` are taken (0005 is the chat UI ADR that landed on main),
+so the next free numbers are `0006` and `0007`. Do not reuse `0001`. Two ADRs
+are written below: Box auth and the data model.
 
 - [ ] **Step 2: Write the ADR**
 
-Create `docs/decisions/0006-box-api-authentication.md`, following `docs/decisions/adr-template.md`:
+Create `docs/decisions/0006-box-api-authentication.md`, following
+`docs/decisions/adr-template.md`:
 
-```markdown
+````markdown
 ---
 status: accepted
 date: 2026-10-17
@@ -1729,9 +1806,9 @@ that boundary and must not require enterprise app configuration.
 
 ## Decision Drivers
 
-* Works across a personal Box account and a folder shared from an enterprise one
-* No enterprise app configuration or key management
-* Sufficient for a proof of concept
+- Works across a personal Box account and a folder shared from an enterprise one
+- No enterprise app configuration or key management
+- Sufficient for a proof of concept
 
 ## Considered Options
 
@@ -1762,15 +1839,17 @@ exits non-zero if the adapter stops constructing the SDK's developer-token auth:
 ```sh
 grep -q "BoxDeveloperTokenAuth" src/box/client.ts
 ```
+````
 
 The live check is Task 7 Step 6, which opens the completed `page-0` step result
-in the Inngest dev UI after a real ingest. The unit tests cannot check this: they
-run against a `BoxClientPort` fake and never reach the SDK.
+in the Inngest dev UI after a real ingest. The unit tests cannot check this:
+they run against a `BoxClientPort` fake and never reach the SDK.
 
 ## More Information
 
 Supersede this ADR with JWT or Client Credentials Grant before production use.
-```
+
+````
 
 The body headings match `adr-template.md` and every existing ADR, and include
 the `### Confirmation` element AGENTS.md requires.
@@ -1838,7 +1917,7 @@ the order is sorted. Run `bun run dev:setup`, then
 
 Revisit if the document count outgrows a single-column primary key, or if
 document metadata needs querying rather than listing.
-```
+````
 
 - [ ] **Step 4: Update README.md in place**
 
@@ -1847,15 +1926,15 @@ Table of Contents listing them. Edit the existing sections — do not append new
 ones, or the document ends up with two `## Usage` headings and a Table of
 Contents that disagrees with the body.
 
-The Table of Contents also names a `Contributing` section that has never
-existed in the body. It is pre-existing breakage, but it is in the file this
-task edits and AGENTS.md requires a docs change to leave headings matching the
-Table of Contents. Add the section rather than dropping the entry, since
-`AGENTS.md` is the contribution guide and standard-readme expects the heading.
+The Table of Contents also names a `Contributing` section that has never existed
+in the body. It is pre-existing breakage, but it is in the file this task edits
+and AGENTS.md requires a docs change to leave headings matching the Table of
+Contents. Add the section rather than dropping the entry, since `AGENTS.md` is
+the contribution guide and standard-readme expects the heading.
 
 Replace the `## Install` section body with:
 
-```markdown
+````markdown
 - [Podman](https://podman.io/) for the Inngest dev server and Postgres.
 - [Bun](https://bun.sh/) `1.2.23` (pinned in `package.json`).
 
@@ -1864,10 +1943,12 @@ bun install
 ```
 ````
 
+```
+
 Copy `.env.example` to `.env` and fill in `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and
 `DATABASE_URL`.
 
-`````
+```
 
 Replace the `## Usage` section body with:
 
@@ -1876,7 +1957,8 @@ Replace the `## Usage` section body with:
 bun run dev:setup  # Inngest dev + Postgres; Inngest UI at http://localhost:8288
 bun run dev        # Elysia API on http://localhost:3000
 bun run db:migrate # apply the initial migration
-`````
+```
+````
 
 Trigger an ingest run:
 

@@ -108,11 +108,10 @@ running app never imports.
 - `listFiles({ folderId, offset, limit })` → `{ entries, totalCount }`
 - `describeFile({ fileId })` → full file metadata
 
-Auth and URL building are the SDK's job and are not reimplemented. The SDK's
-own retry policy does not read the `Retry-After` header, so honoring Box's
-header is our job (see Rate Limiting). The adapter only narrows the response
-types. Note the SDK camel-cases the REST response, so `total_count` is
-`totalCount`.
+Auth and URL building are the SDK's job and are not reimplemented. The SDK's own
+retry policy does not read the `Retry-After` header, so honoring Box's header is
+our job (see Rate Limiting). The adapter only narrows the response types. Note
+the SDK camel-cases the REST response, so `total_count` is `totalCount`.
 
 The folder id comes from `BOX_FOLDER_ID` and is injected; no function hardcodes
 it.
@@ -126,31 +125,33 @@ Table `documents`:
 
 ### Rate Limiting
 
-- `list-files` function: `concurrency: { limit: 1 }`, no rate limit (runs rarely)
-- `process-file` function: `concurrency: { limit: 1 }`, `throttle: { limit: 1000, period: "1m" }`
+- `list-files` function: `concurrency: { limit: 1 }`, no rate limit (runs
+  rarely)
+- `process-file` function: `concurrency: { limit: 1 }`,
+  `throttle: { limit: 1000, period: "1m" }`
 
 `throttle` rather than `rateLimit`, because they differ in what happens at the
-limit. `rateLimit` is lossy: Inngest skips runs once the limit is hit. `throttle`
-enqueues them. A document must never be dropped, so the queueing behavior is the
-one wanted here.
+limit. `rateLimit` is lossy: Inngest skips runs once the limit is hit.
+`throttle` enqueues them. A document must never be dropped, so the queueing
+behavior is the one wanted here.
 
 Box's own limit is honored by `process-file`'s describe step. When Box returns
 `429`, `process-file` raises Inngest's `RetryAfterError` with the wait parsed
 from the `Retry-After` header: the delta-seconds Box sent, with a 60-second
-fallback when the header is an HTTP-date. A `404` raises
-`NonRetriableError` — a deleted or moved file will not reappear, so retrying
-would burn attempts and leave a permanently red run.
+fallback when the header is an HTTP-date. A `404` raises `NonRetriableError` — a
+deleted or moved file will not reappear, so retrying would burn attempts and
+leave a permanently red run.
 
 No ceiling is asserted here; the SDK and Box's published limits are the source
 of truth.
 
 ### Platform Limits
 
-Inngest's published usage limits include 1,000 steps per function run and
-5,000 events per `sendEvent` call. They are server-side limits, not enforced by
-the SDK or the local dev server. `list-files` spends 2 steps per page of 100,
-so the step ceiling is never the binding constraint here: `maxDocuments` is
-capped at 1000 by request validation to bound one run's fan-out and cost.
+Inngest's published usage limits include 1,000 steps per function run and 5,000
+events per `sendEvent` call. They are server-side limits, not enforced by the
+SDK or the local dev server. `list-files` spends 2 steps per page of 100, so the
+step ceiling is never the binding constraint here: `maxDocuments` is capped at
+1000 by request validation to bound one run's fan-out and cost.
 
 ## Tech Stack
 

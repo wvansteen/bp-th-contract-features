@@ -1,7 +1,10 @@
 import { Inngest } from "inngest";
 import { boxClient, boxFolderId, documentStore } from "./deps";
 import { listFilesHandler } from "./functions/list-files";
-import { processFileHandler, type ProcessFileSteps } from "./functions/process-file";
+import {
+  processFileHandler,
+  type ProcessFileSteps,
+} from "./functions/process-file";
 
 export const inngest = new Inngest({ id: "contract-features" });
 

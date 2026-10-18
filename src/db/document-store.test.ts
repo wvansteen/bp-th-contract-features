@@ -4,13 +4,17 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import { createDbClient } from "./client";
 import type { DrizzleDb } from "./client";
-import { createDrizzleDocumentStore, type DocumentStore } from "./document-store";
+import {
+  createDrizzleDocumentStore,
+  type DocumentStore,
+} from "./document-store";
 
 // The tests need a real Postgres but must never touch the developer's
 // `contracts` database, so each run creates a throwaway database from this
 // URL's server, migrates it, and drops it again.
 const baseDatabaseUrl =
-  process.env.TEST_DATABASE_URL ?? "postgresql://bp:bp@localhost:5432/contracts";
+  process.env.TEST_DATABASE_URL ??
+  "postgresql://bp:bp@localhost:5432/contracts";
 
 function urlFor(database: string): string {
   const url = new URL(baseDatabaseUrl);
