@@ -129,11 +129,19 @@ main {
     border-width: 1px 0 0;
     border-radius: 10px 10px 0 0;
   }
+
+  /* Let the whole reading column scroll clear of the fixed sheet. */
+  main {
+    padding-bottom: calc(70vh + 2rem);
+  }
 }
 
-/* Keep page text clear of the fixed panel on wide screens. */
-@media (min-width: 1024px) {
+/* Once the panel floats, keep the reading column beside it rather than under
+   it: the column keeps its 44rem measure and its right edge stops one rem
+   short of the panel at every width. */
+@media (min-width: 641px) {
   main {
-    padding-right: calc(min(380px, calc(100vw - 2rem)) + 5rem);
+    margin-left: auto;
+    margin-right: calc(min(380px, calc(100vw - 2rem)) + 1rem);
   }
 }

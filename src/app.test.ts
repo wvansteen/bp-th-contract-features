@@ -27,6 +27,9 @@ describe("createApp", () => {
     expect(body).toContain('href="lake-county.css"');
     expect(body).not.toMatch(/src="https?:/);
     expect(body).not.toMatch(/href="https?:/);
+    // deep-chat injects a Google Fonts <link> unless chatStyle carries a font
+    // family, so assert the non-default fontFamily is present.
+    expect(body).toMatch(/chatStyle=.*"fontFamily"/);
   });
 
   test("the page carries the Lake County brand and the chat element", async () => {
