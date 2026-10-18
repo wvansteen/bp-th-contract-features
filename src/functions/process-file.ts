@@ -1,10 +1,11 @@
 import { NonRetriableError, RetryAfterError } from "inngest";
 import type { BoxClientPort } from "../box/client";
-import type { DocumentStore } from "../db/document-store";
+import type { DocumentStore, StoredDocument } from "../db/document-store";
 
 export type ProcessFileResult = {
   documentId: string;
   metadata: Record<string, unknown>;
+  upserted: StoredDocument;
 };
 
 export type ProcessFileSteps = {
@@ -13,6 +14,14 @@ export type ProcessFileSteps = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStoredDocument(value: unknown): value is StoredDocument {
+  return (
+    isRecord(value) &&
+    typeof value.documentId === "string" &&
+    isRecord(value.metadata)
+  );
 }
 
 type BoxApiFailure = {
@@ -57,7 +66,9 @@ async function describeFile(
     // immediate retry. RetryAfterError takes milliseconds and its message
     // argument first, and stores the value back as a string of seconds.
     const retryAfter = error.responseInfo.headers["retry-after"];
-    if (status === 429 && retryAfter !== undefined) {
+    // An empty header is treated as absent, matching the pre-rewrite truthy
+    // check and the bare-429 path below.
+    if (status === 429 && retryAfter) {
       const seconds = Number.parseInt(retryAfter, 10);
       const waitMs = Number.isFinite(seconds) ? seconds * 1000 : 60_000;
       throw new RetryAfterError(`Box throttled file ${fileId}`, waitMs);
@@ -85,9 +96,21 @@ export async function processFileHandler(
 
   const metadata = described;
 
-  await steps.run("upsert", () =>
-    store.upsert({ documentId: params.fileId, metadata }),
-  );
+  // The document is the upsert step's result as well as its input, so the
+  // write is observable from the handler's return rather than only from the
+  // store. Removing the step would leave `upserted` undefined and fail the
+  // guard below.
+  const document: StoredDocument = { documentId: params.fileId, metadata };
+  const upserted = await steps.run("upsert", async () => {
+    await store.upsert(document);
+    return document;
+  });
 
-  return { documentId: params.fileId, metadata };
+  if (!isStoredDocument(upserted)) {
+    throw new Error(
+      `upsert did not return a stored document for ${params.fileId}`,
+    );
+  }
+
+  return { documentId: params.fileId, metadata, upserted };
 }

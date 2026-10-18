@@ -12,6 +12,12 @@ function page(entries: BoxFileEntry[], totalCount: number): BoxPage {
   return { entries, totalCount };
 }
 
+function filesFrom(start: number, count: number): BoxFileEntry[] {
+  return Array.from({ length: count }, (_value, index) =>
+    file(String(start + index)),
+  );
+}
+
 // The Box stub is a pure lookup keyed by offset, so tests carry no mutable
 // fetch log. `pagesFetched` on the result records the walk instead.
 function boxWithPages(pages: Record<number, BoxPage>): BoxClientPort {
@@ -67,6 +73,22 @@ describe("list-files", () => {
     );
 
     expect(result.emitted.map((e) => e.data.fileId)).toEqual(["1", "2", "3"]);
+  });
+
+  it("stops fetching once the cap is reached", async () => {
+    const result = await listFilesHandler(
+      boxWithPages({
+        0: page(filesFrom(1, 100), 400),
+        100: page(filesFrom(101, 100), 400),
+        200: page(filesFrom(201, 100), 400),
+        300: page(filesFrom(301, 100), 400),
+      }),
+      passthroughSteps,
+      { folderId: "123", maxDocuments: 100 },
+    );
+
+    expect(result.pagesFetched).toEqual([0]);
+    expect(result.emitted).toHaveLength(100);
   });
 
   it("walks every page when the folder is larger than one page", async () => {

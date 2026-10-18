@@ -32,6 +32,13 @@ async function walk(
   pages: readonly number[],
   emitted: readonly SentEvent[],
 ): Promise<ListFilesResult> {
+  // The cap is the walk's entry condition, mirroring the pre-rewrite
+  // `while (processed < maxDocuments)`. Without it a cap landing exactly on a
+  // page boundary would fetch one extra page before the inner stops fire.
+  if (processed >= params.maxDocuments) {
+    return { pagesFetched: pages, emitted };
+  }
+
   const result = await steps.run(`page-${offset}`, () =>
     box.listFiles({ folderId: params.folderId, offset, limit: PAGE_SIZE }),
   );

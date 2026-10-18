@@ -45,7 +45,7 @@ function retryAfterOf(error: unknown): string | undefined {
 describe("process-file", () => {
   it("describes the file and upserts it", async () => {
     const result = await processFileHandler(
-      boxDescribing({ id: "123", name: "contract.pdf", size: 5000 }),
+      boxDescribing({ id: "777", name: "contract.pdf", size: 5000 }),
       passthroughSteps,
       noopStore,
       { fileId: "123" },
@@ -53,6 +53,10 @@ describe("process-file", () => {
 
     expect(result.documentId).toBe("123");
     expect(result.metadata.name).toBe("contract.pdf");
+    expect(result.upserted).toEqual({
+      documentId: "123",
+      metadata: result.metadata,
+    });
   });
 });
 
@@ -96,6 +100,18 @@ describe("process-file error mapping", () => {
 
   it("rethrows a 429 that carries no Retry-After", async () => {
     const failure = boxApiFailure(429);
+    const error = await processFileHandler(
+      boxFailing(failure),
+      passthroughSteps,
+      noopStore,
+      { fileId: "1" },
+    ).catch((thrown: unknown) => thrown);
+
+    expect(error).toBe(failure);
+  });
+
+  it("treats an empty Retry-After header as absent", async () => {
+    const failure = boxApiFailure(429, { "retry-after": "" });
     const error = await processFileHandler(
       boxFailing(failure),
       passthroughSteps,
