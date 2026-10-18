@@ -1,0 +1,139 @@
+/* Lake County, Illinois palette and type, from lakecountyil.gov. */
+:root {
+  --lake-navy: #00568c;
+  --lake-blue: #0073bb;
+  --lake-ink: #1a2b3c;
+  --lake-muted: #5b6b7a;
+  --lake-line: #d6e3ef;
+  --lake-tint: #eef4fa;
+  --lake-surface: #ffffff;
+  --lake-page: #f7fafc;
+  --lake-font: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background-color: var(--lake-page);
+  color: var(--lake-ink);
+  font-family: var(--lake-font);
+  line-height: 1.5;
+}
+
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  padding: 1.25rem 2rem;
+  background-color: var(--lake-navy);
+  color: var(--lake-surface);
+}
+
+.masthead__wordmark {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.masthead__page {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #cfe4f4;
+}
+
+main {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 3rem 2rem 6rem;
+}
+
+.hero__title {
+  margin: 0 0 0.75rem;
+  color: var(--lake-navy);
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+.hero__lede {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--lake-muted);
+}
+
+.about {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--lake-line);
+}
+
+.about__heading {
+  margin: 0 0 0.5rem;
+  color: var(--lake-navy);
+  font-size: 1.25rem;
+}
+
+.about p {
+  margin: 0;
+}
+
+/* Assistant panel: fixed bottom right, sizing from the design spec. Its
+   deep-chat theme is set with the component's own style attributes in
+   index.html; this rule only places and sizes the host element. */
+.assistant {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  width: min(380px, calc(100vw - 2rem));
+  height: min(540px, calc(100vh - 2rem));
+  overflow: hidden;
+  background-color: var(--lake-surface);
+  border: 1px solid var(--lake-line);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgb(0 86 140 / 18%);
+  z-index: 10;
+}
+
+.assistant__bar {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background-color: var(--lake-navy);
+  color: var(--lake-surface);
+  font-weight: 600;
+}
+
+.assistant__chat {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* On narrow screens the panel becomes a bottom sheet spanning the viewport. */
+@media (max-width: 640px) {
+  .assistant {
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 70vh;
+    border-width: 1px 0 0;
+    border-radius: 10px 10px 0 0;
+  }
+}
+
+/* Keep page text clear of the fixed panel on wide screens. */
+@media (min-width: 1024px) {
+  main {
+    padding-right: calc(min(380px, calc(100vw - 2rem)) + 5rem);
+  }
+}

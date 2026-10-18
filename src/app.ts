@@ -30,5 +30,6 @@ export function createApp(deps: {
         prefix: "/deep-chat",
         assets: "node_modules/deep-chat/dist",
       }),
-    );
+    )
+    .get("/lake-county.css", () => Bun.file("public/lake-county.css"));
 }
