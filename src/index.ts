@@ -1,6 +1,5 @@
-import { staticPlugin } from "@elysiajs/static";
-import { Elysia } from "elysia";
 import { serve } from "inngest/bun";
+import { createApp } from "./app";
 import { inngest, listFilesFn, processFileFn } from "./inngest";
 import { documentStore } from "./deps";
 import { createContractsRoutes } from "./routes/contracts";
@@ -10,18 +9,10 @@ const handler = serve({
   functions: [listFilesFn, processFileFn],
 });
 
-const app = new Elysia()
-  .get("/", () => ({ ok: true }))
-  .all("/api/inngest", ({ request }) => handler(request))
-  .get("/chat", () => Bun.file("public/index.html"))
-  .use(
-    await staticPlugin({
-      prefix: "/deep-chat",
-      assets: "node_modules/deep-chat/dist",
-    }),
-  )
-  .use(createContractsRoutes({ inngest, store: documentStore }))
-  .listen(0);
+const app = createApp({
+  inngestHandler: (request) => handler(request),
+  contractsRoutes: createContractsRoutes({ inngest, store: documentStore }),
+}).listen(0);
 
 console.log(
   `Elysia listening on http://${app.server?.hostname}:${app.server?.port}`,
