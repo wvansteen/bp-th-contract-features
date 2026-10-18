@@ -9,17 +9,24 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0 --no-inline-config",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test": "bun test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun --env-file=.env x drizzle-kit migrate"
   },
   "dependencies": {
     "@elysiajs/static": "^1.4.10",
+    "box-node-sdk": "^10.18.0",
     "deep-chat": "^2.5.1",
+    "drizzle-orm": "^0.45.4",
     "elysia": "^1.4.30",
-    "inngest": "^4.23.0"
+    "inngest": "^4.23.0",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/bun": "~1.2.23",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-functional": "^10.0.1",

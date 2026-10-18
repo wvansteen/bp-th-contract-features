@@ -1,10 +1,14 @@
 import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
 import { serve } from "inngest/bun";
-import { helloWorld } from "./functions/hello";
-import { inngest } from "./inngest";
+import { inngest, listFilesFn, processFileFn } from "./inngest";
+import { documentStore } from "./deps";
+import { createContractsRoutes } from "./routes/contracts";
 
-const handler = serve({ client: inngest, functions: [helloWorld] });
+const handler = serve({
+  client: inngest,
+  functions: [listFilesFn, processFileFn],
+});
 
 const app = new Elysia()
   .get("/", () => ({ ok: true }))
@@ -16,6 +20,7 @@ const app = new Elysia()
       assets: "node_modules/deep-chat/dist",
     }),
   )
+  .use(createContractsRoutes({ inngest, store: documentStore }))
   .listen(0);
 
 console.log(

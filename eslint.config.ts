@@ -5,8 +5,6 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    // eslint.config.ts is outside tsconfig.json's `include: ["src"]`, so the
-    // project service cannot type it. Widening tsconfig is out of scope.
     ignores: ["dist/", "node_modules/", "eslint.config.ts"],
   },
   js.configs.recommended,

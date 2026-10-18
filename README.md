@@ -20,7 +20,7 @@ documents and lets people interact with them.
 
 ## Install
 
-- [Podman](https://podman.io/) for the Inngest dev server.
+- [Podman](https://podman.io/) for the Inngest dev server and Postgres.
 - [Bun](https://bun.sh/) `1.2.23` (pinned in `package.json`).
 - [Ollama](https://ollama.com/) running locally with a model pulled
   (`ollama pull llama3.2`).
@@ -29,19 +29,24 @@ documents and lets people interact with them.
 bun install
 ```
 
+Copy `.env.example` to `.env` and fill in `BOX_APP_TOKEN` and `BOX_FOLDER_ID`.
+The dev tasks inject `DATABASE_URL` from the stack's published port, so no
+connection string is stored.
+
 ## Usage
 
 ```sh
-mise run dev:setup     # start the stack; prints the Inngest UI URL
+mise run dev:setup     # start the stack; prints the Inngest UI and Postgres URLs
 mise run dev           # Elysia API on an auto-selected port, printed at startup
-mise run dev:send      # send the demo event
 mise run dev:teardown  # stop the stack
 ```
 
-Nothing binds a fixed port: Podman assigns the Inngest dev server's ports and
-the app asks the OS for one, so every workspace gets its own and several can run
-at the same time. The dev tasks read the stack's addresses straight from Podman
-and pass them to the app process, so no ports are written down anywhere.
+Nothing binds a fixed port: Podman assigns the Inngest dev server's and
+Postgres's host ports, and the app asks the OS for one, so every workspace gets
+its own and several can run at the same time. The dev tasks read the stack's
+addresses straight from Podman and pass them to the app process, so no ports are
+written down anywhere; `mise run dev:setup` prints the Inngest UI and Postgres
+URLs, and `mise run db:migrate` applies migrations to the running database.
 End-to-end checks read the app's port from its startup output
 (`Elysia listening on http://...:<port>`) to build their curl commands.
 
@@ -54,6 +59,20 @@ example after the dev server is recreated), send the same request:
 ```sh
 curl -X PUT http://host.containers.internal:<port>/api/inngest \
   --resolve host.containers.internal:<port>:127.0.0.1
+```
+
+Trigger an ingest run:
+
+```sh
+curl -X POST http://localhost:<port>/process-contracts \
+  -H "Content-Type: application/json" \
+  -d '{"maxDocuments": 10}'
+```
+
+List stored document metadata:
+
+```sh
+curl http://localhost:<port>/contracts
 ```
 
 - `GET /` returns `{ ok: true }`.
