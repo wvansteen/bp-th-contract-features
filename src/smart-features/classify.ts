@@ -7,6 +7,16 @@ export type ClassifySmartFeatures = (input: {
   document: Uint8Array;
 }) => Promise<Record<string, string>>;
 
+// Models verbalize absence unless given a sentinel to say instead.
+const NOTHING_SENTINEL = "NOTHING";
+
+const normalizeReply = (reply: string): string => {
+  const trimmed = reply.trim();
+  return trimmed.replace(/\.$/, "").toUpperCase() === NOTHING_SENTINEL
+    ? ""
+    : trimmed;
+};
+
 export const createSmartFeatureClassifier =
   ({
     client,
@@ -21,14 +31,16 @@ export const createSmartFeatureClassifier =
     const entries = await Promise.all(
       features.map(async (feature): Promise<readonly [string, string]> => [
         feature.name,
-        await client.complete({
-          model,
-          prompt: BASE_SMART_FEATURE_PROMPT({
-            filename,
-            featurePrompt: feature.prompt,
+        normalizeReply(
+          await client.complete({
+            model,
+            prompt: BASE_SMART_FEATURE_PROMPT({
+              filename,
+              featurePrompt: feature.prompt,
+            }),
+            attachment: { filename, bytes: document },
           }),
-          attachment: { filename, bytes: document },
-        }),
+        ),
       ]),
     );
 

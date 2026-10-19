@@ -81,6 +81,47 @@ describe("createSmartFeatureClassifier", () => {
     expect(await classify({ filename, document })).toEqual({ Termination: "" });
   });
 
+  it("maps the NOTHING sentinel to an empty value", async () => {
+    const classify = createSmartFeatureClassifier({
+      client: {
+        complete: () => Promise.resolve("NOTHING"),
+        chatTextStream: noChatText,
+      },
+      model: "deepseek/deepseek-v4.1-flash-1017",
+      features: [{ name: "Termination", prompt: "termination clause" }],
+    });
+
+    expect(await classify({ filename, document })).toEqual({ Termination: "" });
+  });
+
+  it("maps a lowercase sentinel with trailing punctuation to an empty value", async () => {
+    const classify = createSmartFeatureClassifier({
+      client: {
+        complete: () => Promise.resolve("nothing."),
+        chatTextStream: noChatText,
+      },
+      model: "deepseek/deepseek-v4.1-flash-1017",
+      features: [{ name: "Termination", prompt: "termination clause" }],
+    });
+
+    expect(await classify({ filename, document })).toEqual({ Termination: "" });
+  });
+
+  it("trims surrounding whitespace from the reply", async () => {
+    const classify = createSmartFeatureClassifier({
+      client: {
+        complete: () => Promise.resolve("\n  11/22/2022\n"),
+        chatTextStream: noChatText,
+      },
+      model: "deepseek/deepseek-v4.1-flash-1017",
+      features: [{ name: "Effective Date", prompt: "effective date" }],
+    });
+
+    expect(await classify({ filename, document })).toEqual({
+      "Effective Date": "11/22/2022",
+    });
+  });
+
   it("rejects when any feature call fails", () => {
     const classify = createSmartFeatureClassifier({
       client: {
