@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@elysiajs/static": "^1.4.10",
+    "@openrouter/sdk": "^1.4.25",
     "box-node-sdk": "^10.18.0",
     "deep-chat": "^2.5.1",
     "drizzle-orm": "^0.45.4",

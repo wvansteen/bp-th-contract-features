@@ -25,6 +25,7 @@ function boxWithPages(pages: Record<number, BoxPage>): BoxClientPort {
     describeFile: () => {
       throw new Error("not used");
     },
+    downloadFile: () => Promise.reject(new Error("not used")),
   };
 }
 

@@ -22,3 +22,7 @@ and this project adheres to
   Ollama model; `/chat` redirects to `/`.
 - Vercel deployment: one Vercel Function on the Bun runtime, migrations applied
   at build time.
+- Smart features: each processed document is classified against the configured
+  smart feature prompts, with the document PDF sent to the model per feature;
+  the results are stored on the document record and returned by
+  `GET /contracts`.

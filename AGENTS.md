@@ -42,6 +42,20 @@ The linter enforces these locks as errors:
 For everything the linter cannot check, see
 `docs/guidelines/functional-typescript.md`.
 
+## Comments
+
+Code should be self-documenting. Comments are used sparingly, only where they
+add readability. Never write a comment that says literally what the code does,
+records a chain of reasoning, or describes what the code could, might, or might
+not do. Valid reasons for a comment:
+
+1. A SHORT (about 5 word) note recording an assumed invariant or other condition
+   that is easy for an implementer to forget.
+2. A genuinely complex code block that needs explaining, for example a raw
+   implementation of a sophisticated sorting algorithm.
+3. JSDoc-style comments on functions that are part of a module's public
+   contract. This codebase does not use large modules, so this rarely applies.
+
 ## Where scripts live
 
 `package.json` scripts are the project's commands: anything that needs only the

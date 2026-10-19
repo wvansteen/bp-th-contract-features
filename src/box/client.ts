@@ -1,4 +1,5 @@
 import { BoxClient, BoxDeveloperTokenAuth } from "box-node-sdk";
+import { fileBytes } from "./download";
 
 export type BoxFileEntry = { id: string; type: string; name: string };
 export type BoxPage = { entries: BoxFileEntry[]; totalCount: number };
@@ -10,6 +11,7 @@ export interface BoxClientPort {
     limit: number;
   }): Promise<BoxPage>;
   describeFile(args: { fileId: string }): Promise<unknown>;
+  downloadFile(args: { fileId: string }): Promise<Uint8Array>;
 }
 
 export function createBoxClient({ token }: { token: string }): BoxClientPort {
@@ -39,6 +41,17 @@ export function createBoxClient({ token }: { token: string }): BoxClientPort {
 
     async describeFile({ fileId }) {
       return sdk.files.getFileById(fileId);
+    },
+
+    async downloadFile({ fileId }) {
+      const url = await sdk.downloads.getDownloadFileUrl(fileId);
+      return fileBytes({
+        url,
+        fetchResponse: (downloadUrl) =>
+          fetch(downloadUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+      });
     },
   };
 }
