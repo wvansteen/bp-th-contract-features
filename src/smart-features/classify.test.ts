@@ -5,10 +5,17 @@ import { BASE_SMART_FEATURE_PROMPT } from "./prompts";
 const document = new Uint8Array([1, 2, 3, 4, 5]);
 const filename = "20220920103554.pdf";
 
+async function* noChatText(): AsyncGenerator<string> {
+  // The classifier never streams.
+}
+
 describe("createSmartFeatureClassifier", () => {
   it("returns one entry per feature keyed by name", async () => {
     const classify = createSmartFeatureClassifier({
-      client: { complete: ({ prompt }) => Promise.resolve(prompt) },
+      client: {
+        complete: ({ prompt }) => Promise.resolve(prompt),
+        chatTextStream: noChatText,
+      },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [
         { name: "Payment Terms", prompt: "payment terms" },
@@ -37,6 +44,7 @@ describe("createSmartFeatureClassifier", () => {
               ":",
             ),
           ),
+        chatTextStream: noChatText,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [{ name: "Payment Terms", prompt: "payment terms" }],
@@ -49,7 +57,10 @@ describe("createSmartFeatureClassifier", () => {
 
   it("returns an empty object when no features are configured", async () => {
     const classify = createSmartFeatureClassifier({
-      client: { complete: () => Promise.reject(new Error("not used")) },
+      client: {
+        complete: () => Promise.reject(new Error("not used")),
+        chatTextStream: noChatText,
+      },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [],
     });
@@ -59,12 +70,56 @@ describe("createSmartFeatureClassifier", () => {
 
   it("stores an empty model reply verbatim", async () => {
     const classify = createSmartFeatureClassifier({
-      client: { complete: () => Promise.resolve("") },
+      client: {
+        complete: () => Promise.resolve(""),
+        chatTextStream: noChatText,
+      },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [{ name: "Termination", prompt: "termination clause" }],
     });
 
     expect(await classify({ filename, document })).toEqual({ Termination: "" });
+  });
+
+  it("maps the NOTHING sentinel to an empty value", async () => {
+    const classify = createSmartFeatureClassifier({
+      client: {
+        complete: () => Promise.resolve("NOTHING"),
+        chatTextStream: noChatText,
+      },
+      model: "deepseek/deepseek-v4.1-flash-1017",
+      features: [{ name: "Termination", prompt: "termination clause" }],
+    });
+
+    expect(await classify({ filename, document })).toEqual({ Termination: "" });
+  });
+
+  it("maps a lowercase sentinel with trailing punctuation to an empty value", async () => {
+    const classify = createSmartFeatureClassifier({
+      client: {
+        complete: () => Promise.resolve("nothing."),
+        chatTextStream: noChatText,
+      },
+      model: "deepseek/deepseek-v4.1-flash-1017",
+      features: [{ name: "Termination", prompt: "termination clause" }],
+    });
+
+    expect(await classify({ filename, document })).toEqual({ Termination: "" });
+  });
+
+  it("trims surrounding whitespace from the reply", async () => {
+    const classify = createSmartFeatureClassifier({
+      client: {
+        complete: () => Promise.resolve("\n  11/22/2022\n"),
+        chatTextStream: noChatText,
+      },
+      model: "deepseek/deepseek-v4.1-flash-1017",
+      features: [{ name: "Effective Date", prompt: "effective date" }],
+    });
+
+    expect(await classify({ filename, document })).toEqual({
+      "Effective Date": "11/22/2022",
+    });
   });
 
   it("rejects when any feature call fails", () => {
@@ -74,6 +129,7 @@ describe("createSmartFeatureClassifier", () => {
           prompt.includes("boom")
             ? Promise.reject(new Error("model unavailable"))
             : Promise.resolve(prompt),
+        chatTextStream: noChatText,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [

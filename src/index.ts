@@ -2,7 +2,8 @@ import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
 import { serve } from "inngest/bun";
 import { inngest, listFilesFn, processFileFn } from "./inngest";
-import { documentStore } from "./deps";
+import { chatAgent, documentStore } from "./deps";
+import { createChatRoutes } from "./routes/chat";
 import { createContractsRoutes } from "./routes/contracts";
 
 const handler = serve({
@@ -20,6 +21,7 @@ const app = new Elysia()
     }),
   )
   .use(createContractsRoutes({ inngest, store: documentStore }))
+  .use(createChatRoutes({ agent: chatAgent }))
   .all("/api/inngest", ({ request }) => handler(request));
 
 export default app;

@@ -18,11 +18,10 @@ and this project adheres to
   and processes each document's metadata via Inngest events; `GET /contracts`
   returns all stored document metadata from Postgres.
 - Lake County, Illinois branded `Contract Investigation` page at `/`, with the
-  chat embedded as a bottom-right assistant that streams replies from a local
-  Ollama model; `/chat` redirects to `/`.
 - Smart feature prompts for the 13 contract features in `docs/features.yml`, so
   document classification returns bare values and clause text with no
   commentary.
+- chat embedded as a bottom-right assistant.
 - Vercel deployment: one Vercel Function on the Bun runtime, migrations applied
   at build time.
 - Smart features: each processed document is classified against the configured
@@ -36,3 +35,14 @@ and this project adheres to
   certifications and legal flowdowns a contract carries (debarment, lobbying
   disclosures, prevailing wages, insurance minimums). Deferred to keep the first
   feature set small.
+
+### Changed
+
+- Chat replies now stream through the app's own API from a hosted model set by
+  `CHAT_MODEL`, replacing the local Ollama model.
+
+### Fixed
+
+- Document processing no longer fails with "Reasoning is mandatory for this
+  endpoint and cannot be disabled" on models that require reasoning, such as
+  `openai/gpt-5-nano`.

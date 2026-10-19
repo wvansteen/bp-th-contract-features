@@ -5,6 +5,7 @@ import { createDrizzleDocumentStore } from "./db/document-store";
 import { createOpenRouterClient } from "./openrouter/client";
 import { createSmartFeatureClassifier } from "./smart-features/classify";
 import { SMART_FEATURES } from "./smart-features/features";
+import { createChatAgent } from "./chat/agent";
 
 const env = loadEnv();
 const { db } = createDbClient(env.databaseUrl);
@@ -20,6 +21,11 @@ export const smartFeatureClassifier = createSmartFeatureClassifier({
   client: openRouterClient,
   model: env.smartFeatureModel,
   features: SMART_FEATURES,
+});
+
+export const chatAgent = createChatAgent({
+  client: openRouterClient,
+  model: env.chatModel,
 });
 
 export type InngestEventSender = {

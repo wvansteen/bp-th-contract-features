@@ -25,8 +25,6 @@ feature.
 
 - [Podman](https://podman.io/) for the Inngest dev server and Postgres.
 - [Bun](https://bun.sh/) `1.2.23` (pinned in `package.json`).
-- [Ollama](https://ollama.com/) running locally with a model pulled
-  (`ollama pull llama3.2`).
 
 ```sh
 bun install
@@ -44,7 +42,7 @@ Vercel project environment.
   `db:migrate` task injects the same stack URL. For production, set both
   database names in the Vercel project environment: the pooled Neon URL as
   `DATABASE_URL` and the unpooled one as `DATABASE_URL_UNPOOLED`.
-- `OPENROUTER_API_KEY`, `OCR_MODEL`, and `SMART_FEATURE_MODEL`.
+- `OPENROUTER_API_KEY`, `SMART_FEATURE_MODEL`, and `CHAT_MODEL`.
 
 The dev tasks inject `DATABASE_URL` from the stack's published port, so no
 connection string is stored.
@@ -93,10 +91,7 @@ curl http://localhost:<port>/contracts
 
 - `GET /` serves the Lake County, Illinois branded `Contract Investigation`
   page, with the chat embedded as a bottom-right assistant that streams replies
-  from a local [Ollama](https://ollama.com/) model; `/chat` redirects to `/`.
-
-The page carries the chat's Ollama settings in `public/index.html`; nothing
-server-side reads Ollama environment variables.
+  from a hosted model through the app's `/api/chat` endpoint.
 
 ## Development
 
@@ -116,10 +111,14 @@ round, so the gates work on a fresh clone with nothing but `bun install`.
 ## Deployment
 
 The Vercel project is git-connected, with `main` as the production branch.
-`vercel.json` selects the Bun runtime and sets `bun run db:migrate` as the build
-command, so migrations run against `DATABASE_URL_UNPOOLED` before traffic
-arrives. The app serves `public/` and the Deep Chat assets from its own routes;
-the first deploy confirms the function carries those files.
+`vercel.json` selects the Bun runtime and sets
+`bun run build && bun run db:migrate` as the build command, so the app ships as
+one bundled function and migrations run against `DATABASE_URL_UNPOOLED` before
+traffic arrives. Set `VERCEL_EXPERIMENTAL_BACKENDS=1` in the project
+environment: it makes Vercel use the bundled function, which avoids the Bun
+runtime's module-resolution crash, and emits `public/` as static output. The
+Deep Chat assets still come from the function's static plugin; the first deploy
+confirms the function carries them.
 
 The build step needs the project environment set first: `DATABASE_URL` (pooled
 Neon), `DATABASE_URL_UNPOOLED`, `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and the
