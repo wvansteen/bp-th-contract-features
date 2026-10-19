@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.x",
-  "buildCommand": "bun run db:migrate"
+  "buildCommand": "bun run db:migrate",
+  "outputDirectory": "."
 }
