@@ -35,6 +35,7 @@ and this project adheres to
   certifications and legal flowdowns a contract carries (debarment, lobbying
   disclosures, prevailing wages, insurance minimums). Deferred to keep the first
   feature set small.
+
 ### Changed
 
 - Chat replies now stream through the app's own API from a hosted model set by
