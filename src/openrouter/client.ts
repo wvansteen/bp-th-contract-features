@@ -73,7 +73,8 @@ export function createOpenRouterClient({
         chatRequest: {
           model,
           temperature: 0,
-          reasoning: { effort: "none" },
+          // Some endpoints mandate reasoning; "none" is rejected there.
+          reasoning: { effort: "minimal" },
           messages: [
             {
               role: "user",
