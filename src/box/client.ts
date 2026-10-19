@@ -44,9 +44,6 @@ export function createBoxClient({ token }: { token: string }): BoxClientPort {
     },
 
     async downloadFile({ fileId }) {
-      // GET /files/{id}/content answers 302 to a pre-signed dl.boxcloud.com
-      // URL; fetch follows the redirect. The target works with or without the
-      // auth header.
       const url = await sdk.downloads.getDownloadFileUrl(fileId);
       return fileBytes({
         url,

@@ -1,10 +1,7 @@
 import { pgTable, text, jsonb, customType } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-// Drizzle 0.45.4 ships no first-class bytea column, so define one over the
-// raw Postgres type. The default is written `'\\x'::bytea` because drizzle-kit
-// reads the cooked template string, where a lone `\x` is an invalid escape and
-// would serialize as an empty default.
+// Keep the backslash doubled.
 const bytea = customType<{ data: Uint8Array }>({
   dataType() {
     return "bytea";
