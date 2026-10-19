@@ -20,9 +20,19 @@ and this project adheres to
 - Lake County, Illinois branded `Contract Investigation` page at `/`, with the
   chat embedded as a bottom-right assistant that streams replies from a local
   Ollama model; `/chat` redirects to `/`.
+- Smart feature prompts for the 13 contract features in `docs/features.yml`, so
+  document classification returns bare values and clause text with no
+  commentary.
 - Vercel deployment: one Vercel Function on the Bun runtime, migrations applied
   at build time.
 - Smart features: each processed document is classified against the configured
   smart feature prompts, with the document PDF sent to the model per feature;
   the results are stored on the document record and returned by
   `GET /contracts`.
+
+### TODO
+
+- Potential feature, not implemented: `compliance_obligations`, extracting the
+  certifications and legal flowdowns a contract carries (debarment, lobbying
+  disclosures, prevailing wages, insurance minimums). Deferred to keep the first
+  feature set small.
