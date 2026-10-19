@@ -1,7 +1,7 @@
 {
   "name": "bp-th-contract-features",
   "type": "module",
-  "packageManager": "bun@1.2.23",
+  "packageManager": "bun@1.4.3",
   "scripts": {
     "dev": "bun --hot src/main.ts",
     "build": "bun build src/index.ts --target bun --outdir ./dist",
@@ -21,7 +21,7 @@
     "deep-chat": "^2.5.1",
     "drizzle-orm": "^0.45.4",
     "elysia": "^1.4.30",
-    "inngest": "^4.23.0",
+    "inngest": "^4.24.0",
     "postgres": "^3.4.9"
   },
   "devDependencies": {
