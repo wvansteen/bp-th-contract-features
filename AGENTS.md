@@ -13,6 +13,11 @@ one small step at a time rather than building everything at once.
 Current state: an early prototype. There is application code in `src/`, a
 `package.json`, and build tooling.
 
+Today it ingests PDFs from a Box folder, asks OpenRouter to classify each one
+against the smart features in `src/smart-features/features.ts`, stores the
+results in Postgres, and serves `GET /contracts` plus a chat page whose replies
+stream from `POST /api/chat`.
+
 Intended, non-binding stack. None of this is decided until an ADR says so:
 
 - Pipeline: Inngest
@@ -28,6 +33,51 @@ keep. Logging as a side effect is an accepted exception for this PoC.
   (`src/deps.ts`) and inject them. Pass capabilities as parameters, not globals.
   `drizzle.config.ts` is the one exception: it is a `drizzle-kit` CLI file the
   running app never imports.
+
+## Repository layout
+
+Everything the app runs lives in `src/`. The modules follow the pipeline, not
+the framework:
+
+- `src/index.ts` builds the Elysia app: static page, routes, and the Inngest
+  handler. `src/main.ts` starts it on an OS-assigned port.
+- `src/deps.ts` is the composition root. It loads env once and wires the Box
+  client, database, document store, OpenRouter client, classifier, and chat
+  agent.
+- `src/inngest.ts` defines the Inngest client and functions. `src/functions/`
+  holds their handlers, kept separate so they test without Inngest.
+- `src/box/` talks to Box and downloads PDFs. `src/db/` holds the Drizzle
+  schema, connection, and document store. `src/openrouter/` is the model client.
+  `src/smart-features/` holds feature definitions, prompts, and the classifier.
+  `src/chat/` is the chat agent.
+- `src/routes/` maps HTTP endpoints onto injected dependencies. `src/config/`
+  loads and validates env.
+- `public/` is the static page and stylesheet. `drizzle/` holds generated
+  migrations. `docs/decisions/` holds ADRs and `docs/guidelines/` holds the
+  style guide.
+
+## Dependencies and node_modules
+
+Do not read anything under `node_modules/`. It is generated install output:
+large, minified, and tied to one resolved version. Reading it wastes context and
+invites relying on an internal detail that is not part of the library's public
+contract. `opencode.jsonc` denies `read` for paths under `node_modules/`.
+
+Read the library's public documentation instead.
+
+1. Take the package name from `package.json` and the resolved version from
+   `bun.lock`.
+2. Find the docs without opening `node_modules/`:
+   - `npm view <package> homepage repository.url --json` reads registry
+     metadata.
+   - `homepage` usually points at the docs site or the repository. If it is the
+     repository, fetch it and follow its docs link or `docs/` directory.
+   - Otherwise search the web for `<package> documentation` and match the
+     installed major version.
+3. Fetch the docs page with `webfetch`. Prefer the version that matches the
+   installed one; if only another version is available, say which one you read.
+4. If the docs are missing, closed, or silent on the point, say so and stop. Do
+   not fall back to reading installed source.
 
 ## Style
 
