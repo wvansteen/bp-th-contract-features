@@ -1,4 +1,3 @@
-import deepChatBundle from "deep-chat/dist/deepChat.bundle.js" with { type: "file" };
 import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
 import { serve } from "inngest/bun";
@@ -14,7 +13,6 @@ const handler = serve({
 
 const app = new Elysia()
   .use(staticPlugin({ assets: "public", prefix: "", indexHTML: true }))
-  .get("/deep-chat/deepChat.bundle.js", () => Bun.file(deepChatBundle))
   .use(createContractsRoutes({ inngest, store: documentStore }))
   .use(createChatRoutes({ agent: chatAgent }))
   .all("/api/inngest", ({ request }) => handler(request));

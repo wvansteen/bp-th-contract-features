@@ -4,7 +4,7 @@
   "packageManager": "bun@1.4.3",
   "scripts": {
     "dev": "bun --hot src/main.ts",
-    "build": "bun build src/index.ts --target bun --outdir ./dist --asset-naming \"public/[name].[ext]\"",
+    "build": "bun build src/index.ts src/build.ts --target bun --outdir ./dist --asset-naming \"public/[name].[ext]\"",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -3,3 +3,15 @@ declare module "deep-chat/dist/deepChat.bundle.js" {
 
   export default path;
 }
+
+declare module "*.css" {
+  const path: string;
+
+  export default path;
+}
+
+declare module "*.html" {
+  const path: string;
+
+  export default path;
+}

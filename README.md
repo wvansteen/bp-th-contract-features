@@ -116,10 +116,10 @@ The Vercel project is git-connected, with `main` as the production branch.
 one bundled function and migrations run against `DATABASE_URL_UNPOOLED` before
 traffic arrives. Set `VERCEL_EXPERIMENTAL_BACKENDS=1` in the project
 environment: it makes Vercel use the bundled function, which avoids the Bun
-runtime's module-resolution crash, and emits `public/` as static output.
-Elysia's static plugin serves the page and stylesheet from `public/`, and
-`functions["src/index.ts"].includeFiles` puts that folder in the function. The
-build emits the Deep Chat bundle as an asset and serves it from its route.
+runtime's module-resolution crash, and emits `public/` as static output. The
+build has a separate asset entrypoint, so the page, stylesheet, and Deep Chat
+bundle are emitted into `public/` without the Vercel builder parsing them as
+code. Elysia's static plugin serves that folder, including `index.html` at `/`.
 
 The build step needs the project environment set first: `DATABASE_URL` (pooled
 Neon), `DATABASE_URL_UNPOOLED`, `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and the
