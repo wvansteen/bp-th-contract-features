@@ -1,11 +1,12 @@
 import { describe, expect, it } from "bun:test";
+import type { ChatStreamEvent } from "../openrouter/client";
 import { createSmartFeatureClassifier } from "./classify";
 import { BASE_SMART_FEATURE_PROMPT } from "./prompts";
 
 const document = new Uint8Array([1, 2, 3, 4, 5]);
 const filename = "20220920103554.pdf";
 
-async function* noChatText(): AsyncGenerator<string> {
+async function* noChatEvents(): AsyncGenerator<ChatStreamEvent> {
   // The classifier never streams.
 }
 
@@ -14,7 +15,7 @@ describe("createSmartFeatureClassifier", () => {
     const classify = createSmartFeatureClassifier({
       client: {
         complete: ({ prompt }) => Promise.resolve(prompt),
-        chatTextStream: noChatText,
+        chatStream: noChatEvents,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [
@@ -44,7 +45,7 @@ describe("createSmartFeatureClassifier", () => {
               ":",
             ),
           ),
-        chatTextStream: noChatText,
+        chatStream: noChatEvents,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [{ name: "Payment Terms", prompt: "payment terms" }],
@@ -59,7 +60,7 @@ describe("createSmartFeatureClassifier", () => {
     const classify = createSmartFeatureClassifier({
       client: {
         complete: () => Promise.reject(new Error("not used")),
-        chatTextStream: noChatText,
+        chatStream: noChatEvents,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [],
@@ -72,7 +73,7 @@ describe("createSmartFeatureClassifier", () => {
     const classify = createSmartFeatureClassifier({
       client: {
         complete: () => Promise.resolve(""),
-        chatTextStream: noChatText,
+        chatStream: noChatEvents,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [{ name: "Termination", prompt: "termination clause" }],
@@ -85,7 +86,7 @@ describe("createSmartFeatureClassifier", () => {
     const classify = createSmartFeatureClassifier({
       client: {
         complete: () => Promise.resolve("NOTHING"),
-        chatTextStream: noChatText,
+        chatStream: noChatEvents,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [{ name: "Termination", prompt: "termination clause" }],
@@ -98,7 +99,7 @@ describe("createSmartFeatureClassifier", () => {
     const classify = createSmartFeatureClassifier({
       client: {
         complete: () => Promise.resolve("nothing."),
-        chatTextStream: noChatText,
+        chatStream: noChatEvents,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [{ name: "Termination", prompt: "termination clause" }],
@@ -111,7 +112,7 @@ describe("createSmartFeatureClassifier", () => {
     const classify = createSmartFeatureClassifier({
       client: {
         complete: () => Promise.resolve("\n  11/22/2022\n"),
-        chatTextStream: noChatText,
+        chatStream: noChatEvents,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [{ name: "Effective Date", prompt: "effective date" }],
@@ -129,7 +130,7 @@ describe("createSmartFeatureClassifier", () => {
           prompt.includes("boom")
             ? Promise.reject(new Error("model unavailable"))
             : Promise.resolve(prompt),
-        chatTextStream: noChatText,
+        chatStream: noChatEvents,
       },
       model: "deepseek/deepseek-v4.1-flash-1017",
       features: [
