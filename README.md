@@ -91,7 +91,15 @@ curl http://localhost:<port>/contracts
 
 - `GET /` serves the Lake County, Illinois branded `Contract Investigation`
   page, with the chat embedded as a bottom-right assistant that streams replies
-  from a hosted model through the app's `/api/chat` endpoint.
+  from a hosted model through the app's `/api/chat` endpoint. The assistant
+  answers contract questions by querying the stored documents.
+
+The assistant writes its own SQL against the `documents` table. Every statement
+must parse as one read-only `SELECT` or `WITH`, runs inside a read-only
+transaction with a five second timeout, and returns at most 100 rows with the
+PDF bytes removed. This is a proof of concept: a production deployment would
+connect with a dedicated Postgres role limited to `SELECT` on `documents`
+instead of the app's migration-capable role.
 
 ## Development
 
