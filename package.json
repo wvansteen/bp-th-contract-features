@@ -4,7 +4,8 @@
   "packageManager": "bun@1.4.3",
   "scripts": {
     "dev": "bun --hot src/main.ts",
-    "build": "bun build src/index.ts --target bun --outdir ./dist",
+    "build": "bun run copy:deep-chat && bun build src/index.ts --target bun --outdir ./dist",
+    "copy:deep-chat": "mkdir -p public/deep-chat && cp node_modules/deep-chat/dist/deepChat.bundle.js public/deep-chat/deepChat.bundle.js",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

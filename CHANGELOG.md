@@ -46,3 +46,5 @@ and this project adheres to
 - Document processing no longer fails with "Reasoning is mandatory for this
   endpoint and cannot be disabled" on models that require reasoning, such as
   `openai/gpt-5-nano`.
+- The deployed app serves the Deep Chat bundle as a static asset instead of
+  reading `node_modules/deep-chat/dist`, which the function does not carry.

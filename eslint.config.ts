@@ -5,7 +5,13 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist/", "node_modules/", ".vercel/", "eslint.config.ts"],
+    ignores: [
+      "dist/",
+      "node_modules/",
+      ".vercel/",
+      "public/deep-chat/",
+      "eslint.config.ts",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

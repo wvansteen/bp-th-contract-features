@@ -117,8 +117,8 @@ one bundled function and migrations run against `DATABASE_URL_UNPOOLED` before
 traffic arrives. Set `VERCEL_EXPERIMENTAL_BACKENDS=1` in the project
 environment: it makes Vercel use the bundled function, which avoids the Bun
 runtime's module-resolution crash, and emits `public/` as static output. The
-Deep Chat assets still come from the function's static plugin; the first deploy
-confirms the function carries them.
+build also copies the Deep Chat bundle into `public/deep-chat`, so Vercel serves
+it as a static asset while local dev serves it from `node_modules`.
 
 The build step needs the project environment set first: `DATABASE_URL` (pooled
 Neon), `DATABASE_URL_UNPOOLED`, `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and the
