@@ -39,4 +39,5 @@ static output.
 ### Confirmation
 
 `.vercel/output/functions/index.func/.vc-config.json` maps the handler to
-`dist/index.js`, and `.vercel/output/static/index.html` exists.
+`dist/index.js`, includes `node_modules/deep-chat/dist/deepChat.bundle.js`, and
+`.vercel/output/static/index.html` exists.

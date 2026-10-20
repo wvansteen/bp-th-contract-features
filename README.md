@@ -116,9 +116,10 @@ The Vercel project is git-connected, with `main` as the production branch.
 one bundled function and migrations run against `DATABASE_URL_UNPOOLED` before
 traffic arrives. Set `VERCEL_EXPERIMENTAL_BACKENDS=1` in the project
 environment: it makes Vercel use the bundled function, which avoids the Bun
-runtime's module-resolution crash, and emits `public/` as static output. The
-build also copies the Deep Chat bundle into `public/deep-chat`, so Vercel serves
-it as a static asset while local dev serves it from `node_modules`.
+runtime's module-resolution crash, and emits `public/` as static output. A
+`functions` entry in `vercel.json` includes the Deep Chat bundle in the deployed
+function, so the static plugin serves it from `node_modules/deep-chat/dist` in
+both local and production.
 
 The build step needs the project environment set first: `DATABASE_URL` (pooled
 Neon), `DATABASE_URL_UNPOOLED`, `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and the

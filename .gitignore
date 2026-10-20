@@ -6,7 +6,6 @@ dist/
 build/
 out/
 .vercel/
-public/deep-chat/
 
 # Test / coverage
 coverage/
