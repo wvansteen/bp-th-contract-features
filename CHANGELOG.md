@@ -40,11 +40,3 @@ and this project adheres to
 
 - Chat replies now stream through the app's own API from a hosted model set by
   `CHAT_MODEL`, replacing the local Ollama model.
-
-### Fixed
-
-- Document processing no longer fails with "Reasoning is mandatory for this
-  endpoint and cannot be disabled" on models that require reasoning, such as
-  `openai/gpt-5-nano`.
-- The chat loads on the deployed app; the Deep Chat bundle is included in the
-  function rather than served from a separate static copy.
