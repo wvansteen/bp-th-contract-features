@@ -117,9 +117,10 @@ one bundled function and migrations run against `DATABASE_URL_UNPOOLED` before
 traffic arrives. Set `VERCEL_EXPERIMENTAL_BACKENDS=1` in the project
 environment: it makes Vercel use the bundled function, which avoids the Bun
 runtime's module-resolution crash, and emits `public/` as static output. The
-build also emits the Deep Chat bundle as an asset and copies `public/` into the
-build output, so the function carries every file its routes read: the page, the
-stylesheet, and the bundle.
+build imports the page and stylesheet as file-loader assets, so Bun emits them
+under `public/` in the function's output, and Elysia's static plugin serves that
+directory. The Deep Chat bundle is emitted the same way and served from its
+route, so the function carries every file it reads.
 
 The build step needs the project environment set first: `DATABASE_URL` (pooled
 Neon), `DATABASE_URL_UNPOOLED`, `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and the

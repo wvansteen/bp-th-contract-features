@@ -1,4 +1,7 @@
+import "../public/index.html" with { type: "file" };
+import "../public/lake-county.css" with { type: "file" };
 import deepChatBundle from "deep-chat/dist/deepChat.bundle.js" with { type: "file" };
+import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
 import { serve } from "inngest/bun";
 import { inngest, listFilesFn, processFileFn } from "./inngest";
@@ -12,8 +15,7 @@ const handler = serve({
 });
 
 const app = new Elysia()
-  .get("/", () => Bun.file("public/index.html"))
-  .get("/lake-county.css", () => Bun.file("public/lake-county.css"))
+  .use(staticPlugin({ assets: "public", prefix: "", indexHTML: true }))
   .get("/deep-chat/deepChat.bundle.js", () => Bun.file(deepChatBundle))
   .use(createContractsRoutes({ inngest, store: documentStore }))
   .use(createChatRoutes({ agent: chatAgent }))
