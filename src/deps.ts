@@ -26,6 +26,7 @@ export const smartFeatureClassifier = createSmartFeatureClassifier({
 export const chatAgent = createChatAgent({
   client: openRouterClient,
   model: env.chatModel,
+  tools: [],
 });
 
 export type InngestEventSender = {
