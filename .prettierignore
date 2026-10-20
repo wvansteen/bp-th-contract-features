@@ -1,5 +1,6 @@
 dist/
 bun.lock
 node_modules/
+public/deepChat.bundle.js
 .superpowers/
 .vercel/

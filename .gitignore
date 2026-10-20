@@ -6,6 +6,7 @@ dist/
 build/
 out/
 .vercel/
+public/deepChat.bundle.js
 
 # Test / coverage
 coverage/
