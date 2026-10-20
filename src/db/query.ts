@@ -55,7 +55,7 @@ export function toSingleReadOnlyStatement(sql: string): string {
     throw new Error("Only read-only statements are allowed");
   }
 
-  return `select * from (${sql.trim().replace(/;+$/, "")}) as contract_query limit ${ROW_LIMIT}`;
+  return `select * from (\n${sql.trim().replace(/[\s;]+$/, "")}\n) as contract_query limit ${ROW_LIMIT}`;
 }
 
 export type QueryRows = readonly Record<string, unknown>[];
@@ -79,7 +79,10 @@ export const createContractQuery =
     );
     const withoutPdf = rows.map((row) =>
       Object.fromEntries(
-        Object.entries(row).filter(([key]) => key !== "document"),
+        Object.entries(row).filter(
+          ([key, value]) =>
+            key !== "document" && !(value instanceof Uint8Array),
+        ),
       ),
     );
     return {

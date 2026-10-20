@@ -6,7 +6,7 @@ import {
 } from "./query";
 
 const wrap = (body: string) =>
-  `select * from (${body}) as contract_query limit 101`;
+  `select * from (\n${body}\n) as contract_query limit 101`;
 
 describe("toSingleReadOnlyStatement", () => {
   it("wraps a select with the row cap", () => {
@@ -17,6 +17,16 @@ describe("toSingleReadOnlyStatement", () => {
 
   it("strips trailing semicolons", () => {
     expect(toSingleReadOnlyStatement("select 1;;")).toBe(wrap("select 1"));
+  });
+
+  it("keeps a trailing line comment from swallowing the wrapper", () => {
+    expect(toSingleReadOnlyStatement("select 1 -- note")).toBe(
+      wrap("select 1 -- note"),
+    );
+  });
+
+  it("strips a stray semicolon sequence", () => {
+    expect(toSingleReadOnlyStatement("select 1 ; ;")).toBe(wrap("select 1"));
   });
 
   it("accepts Postgres JSON operators", () => {
@@ -71,7 +81,7 @@ describe("createContractQuery", () => {
       inReadOnlyTransaction: (run) =>
         run((statement) => {
           expect(statement).toBe(
-            "select * from (select document_id from documents) as contract_query limit 101",
+            "select * from (\nselect document_id from documents\n) as contract_query limit 101",
           );
           return Promise.resolve([]);
         }),
@@ -83,6 +93,17 @@ describe("createContractQuery", () => {
   it("drops the document column", async () => {
     const query = createContractQuery(
       rowsExecutor([{ document_id: "abc", document: new Uint8Array([1]) }]),
+    );
+
+    expect(await query("select * from documents")).toEqual({
+      rows: [{ document_id: "abc" }],
+      truncated: false,
+    });
+  });
+
+  it("drops bytea values under any column name", async () => {
+    const query = createContractQuery(
+      rowsExecutor([{ pdf: new Uint8Array([1, 2, 3]), document_id: "abc" }]),
     );
 
     expect(await query("select * from documents")).toEqual({
