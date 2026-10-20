@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "bunVersion": "1.x",
-  "buildCommand": "bun run build && bun run db:migrate"
+  "buildCommand": "bun run build && bun run db:migrate",
+  "functions": {
+    "src/index.ts": {
+      "includeFiles": "public/**"
+    }
+  }
 }

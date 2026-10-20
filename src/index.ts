@@ -1,5 +1,3 @@
-import "../public/index.html" with { type: "file" };
-import "../public/lake-county.css" with { type: "file" };
 import deepChatBundle from "deep-chat/dist/deepChat.bundle.js" with { type: "file" };
 import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
