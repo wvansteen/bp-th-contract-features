@@ -12,14 +12,7 @@ const handler = serve({
 });
 
 const app = new Elysia()
-  .get("/", () => Bun.file("public/index.html"))
-  .get("/lake-county.css", () => Bun.file("public/lake-county.css"))
-  .use(
-    await staticPlugin({
-      prefix: "/deep-chat",
-      assets: "node_modules/deep-chat/dist",
-    }),
-  )
+  .use(staticPlugin({ assets: "public", prefix: "", indexHTML: true }))
   .use(createContractsRoutes({ inngest, store: documentStore }))
   .use(createChatRoutes({ agent: chatAgent }))
   .all("/api/inngest", ({ request }) => handler(request));
