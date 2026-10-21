@@ -46,6 +46,11 @@ describe("createQueryContractsTool", () => {
     });
   });
 
+  it("keeps extracted values as text with no casts", () => {
+    expect(tool.definition.description).toContain("raw text");
+    expect(tool.definition.description).not.toContain("::");
+  });
+
   it("returns the rows as JSON", async () => {
     expect(await tool.run('{"sql":"select document_id from documents"}')).toBe(
       JSON.stringify({ rows: [{ document_id: "abc" }], truncated: false }),
