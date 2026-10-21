@@ -127,9 +127,12 @@ SvelteKit serves the app through `@sveltejs/adapter-vercel`, configured in
 `vite.config.ts` with `runtime: "bun1.x"` so the functions run on Vercel's Bun
 runtime. `vercel.json` sets `framework: "sveltekit"`, `bunVersion: "1.x"`, and
 the build command `bun run build && bun run db:migrate`, so migrations run
-against `DATABASE_URL_UNPOOLED` before traffic arrives. If
-`VERCEL_EXPERIMENTAL_BACKENDS` is still set in the project environment from the
-old Elysia deploy, delete it; SvelteKit does not use it.
+against `DATABASE_URL_UNPOOLED` before traffic arrives. `vite build` bundles
+every server dependency (`ssr.noExternal`): the adapter copies only the files
+Node would load, so packages with a separate Bun entry point (`memoirist`,
+`jose`) would be missing at runtime. If `VERCEL_EXPERIMENTAL_BACKENDS` is still
+set in the project environment from the old Elysia deploy, delete it; SvelteKit
+does not use it.
 
 The build step needs the project environment set first: `DATABASE_URL` (pooled
 Neon), `DATABASE_URL_UNPOOLED`, `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and the
