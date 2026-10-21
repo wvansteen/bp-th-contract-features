@@ -47,3 +47,5 @@ and this project adheres to
   `CHAT_MODEL`, replacing the local Ollama model.
 - The SQL tool treats extracted feature values as raw text and no longer
   suggests numeric or date casts.
+- `/contracts` and `/process-contracts` moved to `/api/contracts` and
+  `/api/process-contracts`; every API now lives under `/api`.

@@ -1,8 +1,13 @@
-import app from "./index";
+import { staticPlugin } from "@elysiajs/static";
+import { Elysia } from "elysia";
+import api from "./api";
 
-app.get("/deepChat.bundle.js", () =>
-  Bun.file("node_modules/deep-chat/dist/deepChat.bundle.js"),
-);
+const app = new Elysia()
+  .use(staticPlugin({ assets: "public", prefix: "", indexHTML: true }))
+  .use(api)
+  .get("/deepChat.bundle.js", () =>
+    Bun.file("node_modules/deep-chat/dist/deepChat.bundle.js"),
+  );
 
 app.listen(0);
 
