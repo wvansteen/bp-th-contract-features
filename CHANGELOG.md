@@ -45,3 +45,5 @@ and this project adheres to
 
 - Chat replies now stream through the app's own API from a hosted model set by
   `CHAT_MODEL`, replacing the local Ollama model.
+- The SQL tool treats extracted feature values as raw text and no longer
+  suggests numeric or date casts.

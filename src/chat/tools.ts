@@ -32,14 +32,15 @@ const descriptionFor = (features: readonly SmartFeature[]): string =>
 The table is documents:
 - document_id text: the Box file id.
 - metadata jsonb: the Box file record. Useful keys: metadata->>'name', metadata->>'size', metadata->>'created_at', metadata->>'modified_at'.
-- smart_features jsonb: extracted contract values keyed by feature name: ${features.map((feature) => feature.name).join(", ")}. Values are strings, possibly empty.
+- smart_features jsonb: extracted contract values keyed by feature name: ${features.map((feature) => feature.name).join(", ")}. Values are raw text copied from the document, possibly empty. Compare them as text with = or ilike; never cast them, and never compare them with >, <, or between.
 - document bytea: the PDF. Never select it.
 
 Use PostgreSQL JSON syntax, for example:
 - smart_features->>'category' = 'lease'
-- (smart_features->>'total_cost')::numeric > 100000
+- smart_features->>'total_cost' ilike '%100,000%'
 - smart_features @> '{"category":"technology_services"}'
-- (smart_features->>'expiration_date')::date between now() and now() + interval '90 days'
+- smart_features->>'expiration_date' ilike '%2026%'
+- smart_features->>'renewal_terms' ilike '%one year%'
 - metadata->>'name' ilike '%renewal%'
 
 Send exactly one SELECT or WITH statement. Results are capped at 100 rows.`;
