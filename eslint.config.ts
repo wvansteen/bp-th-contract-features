@@ -1,6 +1,9 @@
 import js from "@eslint/js";
+import { createTypeScriptImportResolver } from "eslint-import-resolver-typescript";
 import eslintConfigPrettier from "eslint-config-prettier";
 import functional from "eslint-plugin-functional";
+import svelte from "eslint-plugin-svelte";
+import { createNodeResolver, importX } from "eslint-plugin-import-x";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
@@ -15,11 +18,24 @@ export default tseslint.config(
   },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
+  ...svelte.configs.recommended,
   {
     languageOptions: {
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
+        extraFileExtensions: [".svelte"],
+      },
+    },
+  },
+  {
+    // Make the HARD LOCKS reach Svelte script blocks.
+    files: ["**/*.svelte", "**/*.svelte.ts", "**/*.svelte.js"],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+        parser: tseslint.parser,
       },
     },
   },
@@ -66,8 +82,30 @@ export default tseslint.config(
     },
   },
   {
+    // ADD NEW RULES HERE
+    plugins: { "import-x": importX },
+    settings: {
+      "import-x/resolver-next": [
+        createTypeScriptImportResolver({ bun: true }),
+        createNodeResolver(),
+      ],
+    },
     rules: {
-      // ADD NEW RULES HERE
+      "import-x/no-restricted-paths": [
+        "error",
+        {
+          basePath: import.meta.dirname,
+          zones: [
+            // The backend reaches only into itself.
+            { target: "src/api", from: "src", except: ["api"] },
+            // The frontend reaches the backend only through the SvelteKit route.
+            {
+              target: ["src/!(api)/**/!(+server.ts)", "src/*"],
+              from: "src/api",
+            },
+          ],
+        },
+      ],
     },
   },
 );
