@@ -14,15 +14,15 @@ Current state: an early prototype. There is application code in `src/`, a
 `package.json`, and build tooling.
 
 Today it ingests PDFs from a Box folder, asks OpenRouter to classify each one
-against the smart features in `src/smart-features/features.ts`, stores the
-results in Postgres, and serves `GET /contracts` plus a chat page whose replies
-stream from `POST /api/chat`.
+against the smart features in `src/api/smart-features/features.ts`, stores the
+results in Postgres, and serves `GET /api/contracts` plus a SvelteKit chat page
+whose replies stream from `POST /api/chat`.
 
 Intended, non-binding stack. None of this is decided until an ADR says so:
 
 - Pipeline: Inngest
 - Web server: Elysia on Bun, TypeScript
-- Frontend: Svelte SPA (including the chatbot UI)
+- Frontend: SvelteKit (including the chatbot UI)
 - LLM steps: LangChain
 
 Style: mostly functional, leaning on a managed effects system where it earns its
@@ -30,31 +30,35 @@ keep. Logging as a side effect is an accepted exception for this PoC.
 
 - **Dependency injection over env access.** Never read env vars or construct
   low-level clients inside a function. Build them at the composition root
-  (`src/deps.ts`) and inject them. Pass capabilities as parameters, not globals.
-  `drizzle.config.ts` is the one exception: it is a `drizzle-kit` CLI file the
-  running app never imports.
+  (`src/api/deps.ts`) and inject them. Pass capabilities as parameters, not
+  globals. `drizzle.config.ts` is the one exception: it is a `drizzle-kit` CLI
+  file the running app never imports.
 
 ## Repository layout
 
 Everything the app runs lives in `src/`. The modules follow the pipeline, not
 the framework:
 
-- `src/index.ts` builds the Elysia app: static page, routes, and the Inngest
-  handler. `src/main.ts` starts it on an OS-assigned port.
-- `src/deps.ts` is the composition root. It loads env once and wires the Box
+- `src/api/` is the backend, isolated from the frontend. `src/api/index.ts`
+  builds and exports the Elysia app with an `/api` prefix. Inside it,
+  `src/api/deps.ts` is the composition root: it loads env once and wires the Box
   client, database, document store, OpenRouter client, classifier, and chat
   agent.
-- `src/inngest.ts` defines the Inngest client and functions. `src/functions/`
-  holds their handlers, kept separate so they test without Inngest.
-- `src/box/` talks to Box and downloads PDFs. `src/db/` holds the Drizzle
-  schema, connection, and document store. `src/openrouter/` is the model client.
-  `src/smart-features/` holds feature definitions, prompts, and the classifier.
-  `src/chat/` is the chat agent.
-- `src/routes/` maps HTTP endpoints onto injected dependencies. `src/config/`
-  loads and validates env.
-- `public/` is the static page and stylesheet. `drizzle/` holds generated
-  migrations. `docs/decisions/` holds ADRs and `docs/guidelines/` holds the
-  style guide.
+- `src/api/inngest.ts` defines the Inngest client and functions.
+  `src/api/functions/` holds their handlers, kept separate so they test without
+  Inngest.
+- `src/api/box/` talks to Box and downloads PDFs. `src/api/db/` holds the
+  Drizzle schema, connection, and document store. `src/api/openrouter/` is the
+  model client. `src/api/smart-features/` holds feature definitions, prompts,
+  and the classifier. `src/api/chat/` is the chat agent. `src/api/routes/` maps
+  HTTP endpoints onto injected dependencies. `src/api/config/` loads and
+  validates env.
+- `src/routes/` is SvelteKit: `+page.svelte` is the contract page and
+  `api/[...slugs]/+server.ts` is the only frontend file that imports `src/api/`.
+  `src/lib/` holds the stylesheet, `src/app.html` is the page shell, and
+  `src/app.d.ts` holds the app types.
+- `drizzle/` holds generated migrations. `docs/decisions/` holds ADRs and
+  `docs/guidelines/` holds the style guide.
 
 ## Dependencies and node_modules
 

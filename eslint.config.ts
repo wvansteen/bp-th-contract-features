@@ -9,7 +9,7 @@ export default tseslint.config(
       "dist/",
       "node_modules/",
       ".vercel/",
-      "public/deepChat.bundle.js",
+      ".svelte-kit/",
       "eslint.config.ts",
     ],
   },

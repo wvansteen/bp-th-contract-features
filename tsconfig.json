@@ -1,9 +1,10 @@
 {
+  "extends": "$app/tsconfig",
   "compilerOptions": {
     "target": "es2021",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "types": ["bun"],
+    "types": ["$app/types", "bun"],
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
@@ -15,5 +16,6 @@
     "verbatimModuleSyntax": true
   },
   // `drizzle.config.ts` is a drizzle-kit CLI file the running app never imports.
-  "include": ["src", "drizzle.config.ts"]
+  "include": ["src", "test", "*"],
+  "exclude": ["src/service-worker"]
 }

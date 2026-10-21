@@ -24,7 +24,7 @@ feature.
 ## Install
 
 - [Podman](https://podman.io/) for the Inngest dev server and Postgres.
-- [Bun](https://bun.sh/) `1.2.23` (pinned in `package.json`).
+- [Bun](https://bun.sh/) `1.4.3` (pinned in `package.json`).
 
 ```sh
 bun install
@@ -109,8 +109,8 @@ instead of the app's migration-capable role.
 ```sh
 bun run format:check  # Prettier, read-only
 bun run lint          # ESLint locks
-bun run typecheck     # tsc --noEmit
-bun run build         # bundle to dist/
+bun run typecheck     # svelte-check over the app and the API
+bun run build         # build to .vercel/output/
 ```
 
 The pre-commit hook runs all four and rejects the commit on failure.
@@ -122,15 +122,11 @@ round, so the gates work on a fresh clone with nothing but `bun install`.
 ## Deployment
 
 The Vercel project is git-connected, with `main` as the production branch.
-`vercel.json` selects the Bun runtime and sets
-`bun run build && bun run db:migrate` as the build command, so the app ships as
-one bundled function and migrations run against `DATABASE_URL_UNPOOLED` before
-traffic arrives. Set `VERCEL_EXPERIMENTAL_BACKENDS=1` in the project
-environment: it makes Vercel use the bundled function, which avoids the Bun
-runtime's module-resolution crash. The build copies the Deep Chat bundle into
-`public/` after Bun runs, and `functions["index"].includeFiles` puts that folder
-in the root function, where Elysia's static plugin serves it, including
-`index.html` at `/`.
+SvelteKit serves the app through `@sveltejs/adapter-vercel`, configured in
+`vite.config.ts` with `runtime: "bun1.x"` so the functions run on Vercel's Bun
+runtime. `vercel.json` sets `bunVersion: "1.x"` and the build command
+`bun run build && bun run db:migrate`, so migrations run against
+`DATABASE_URL_UNPOOLED` before traffic arrives.
 
 The build step needs the project environment set first: `DATABASE_URL` (pooled
 Neon), `DATABASE_URL_UNPOOLED`, `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and the
@@ -143,6 +139,28 @@ curl -X PUT https://<host>/api/inngest
 ## Architecture Decisions
 
 ADRs live in [`docs/decisions/`](docs/decisions/).
+
+- [0000](docs/decisions/0000-use-markdown-architectural-decision-records.md):
+  Use Markdown Architectural Decision Records.
+- [0001](docs/decisions/0001-container-harness-podman-compose.md): Container
+  harness Podman Compose.
+- [0002](docs/decisions/0002-web-framework-elysia.md): Web framework Elysia on
+  Bun.
+- [0003](docs/decisions/0003-workflow-engine-inngest.md): Workflow engine
+  Inngest.
+- [0004](docs/decisions/0004-lint-and-format-toolchain.md): Lint and format
+  toolchain.
+- [0005](docs/decisions/0005-workspace-local-dev-ports.md): Workspace-local dev
+  ports bound by the stack itself.
+- [0006](docs/decisions/0006-data-model-and-database-driver.md): Data model and
+  database driver.
+- [0007](docs/decisions/0007-pdf-attachment-on-every-classification-request.md):
+  PDF attachment on every classification request.
+- [0009](docs/decisions/0009-server-side-chat-agent.md): Server-side chat agent.
+- [0010](docs/decisions/0010-model-written-sql-query-tool.md): Model-written SQL
+  query tool.
+- [0011](docs/decisions/0011-sveltekit-hosts-elysia.md): SvelteKit hosts the
+  app, Elysia serves /api.
 
 ## License
 

@@ -22,8 +22,8 @@ and this project adheres to
   document classification returns bare values and clause text with no
   commentary.
 - chat embedded as a bottom-right assistant.
-- Vercel deployment: one Vercel Function on the Bun runtime, migrations applied
-  at build time.
+- Vercel deployment through the SvelteKit Vercel adapter on the Bun runtime,
+  migrations applied at build time.
 - Smart features: each processed document is classified against the configured
   smart feature prompts, with the document PDF sent to the model per feature;
   the results are stored on the document record and returned by
@@ -47,5 +47,6 @@ and this project adheres to
   `CHAT_MODEL`, replacing the local Ollama model.
 - The SQL tool treats extracted feature values as raw text and no longer
   suggests numeric or date casts.
+- The Contract Investigation page is served by SvelteKit.
 - `/contracts` and `/process-contracts` moved to `/api/contracts` and
   `/api/process-contracts`; every API now lives under `/api`.
