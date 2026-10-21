@@ -2,20 +2,22 @@
   "name": "bp-th-contract-features",
   "type": "module",
   "packageManager": "bun@1.4.3",
+  "imports": {
+    "#lib/*": "./src/lib/*"
+  },
   "scripts": {
-    "dev": "bun --hot src/main.ts",
-    "build": "bun build src/index.ts --target bun --outdir ./dist && cp node_modules/deep-chat/dist/deepChat.bundle.js public/deepChat.bundle.js",
-    "typecheck": "tsc --noEmit",
+    "dev": "bun --bun vite dev",
+    "build": "BOX_APP_TOKEN=${BOX_APP_TOKEN:-build-stub} BOX_FOLDER_ID=${BOX_FOLDER_ID:-build-stub} DATABASE_URL=${DATABASE_URL:-postgres://stub:stub@localhost:5432/stub} OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-build-stub} SMART_FEATURE_MODEL=${SMART_FEATURE_MODEL:-build-stub} CHAT_MODEL=${CHAT_MODEL:-build-stub} bun --bun vite build",
+    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0 --no-inline-config",
-    "prepare": "husky",
+    "prepare": "svelte-kit sync && husky",
     "test": "bun test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun x drizzle-kit migrate"
   },
   "dependencies": {
-    "@elysiajs/static": "^1.4.10",
     "@openrouter/sdk": "^1.4.25",
     "box-node-sdk": "^10.18.0",
     "deep-chat": "^2.5.1",
@@ -27,15 +29,24 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@sveltejs/adapter-vercel": "^7.0.1",
+    "@sveltejs/kit": "^3.1.0",
     "@types/bun": "~1.2.23",
     "drizzle-kit": "^0.31.11",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-functional": "^10.0.1",
+    "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-svelte": "^3.23.1",
     "husky": "^9.1.7",
     "jiti": "^2.7.0",
     "prettier": "^3.9.10",
+    "prettier-plugin-svelte": "^4.1.1",
+    "svelte": "^5.57.2",
+    "svelte-check": "^4.7.7",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.71.2"
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.5"
   }
 }

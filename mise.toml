@@ -17,23 +17,22 @@ description = "Stop the local stack"
 run = "podman compose down"
 
 [tasks.dev]
-description = "Run the Elysia API on an auto-selected port"
+description = "Run the SvelteKit dev server on an auto-selected port"
 depends = ["dev:setup"]
-run = """
+run = '''
 export INNGEST_DEV="http://127.0.0.1:$(podman compose port inngest 8288 | cut -d: -f2)"
 export DATABASE_URL="postgresql://bp:bp@127.0.0.1:$(podman compose port postgres 5432 | cut -d: -f2)/contracts"
 LOG=$(mktemp)
-bun run dev 2>&1 | tee "$LOG" &
+NO_COLOR=1 bun run dev -- --host --clearScreen false 2>&1 | tee "$LOG" &
 for _ in $(seq 100); do
-  grep -q "Elysia listening" "$LOG" && break
+  grep -q "Local:" "$LOG" && break
   sleep 0.2
 done
-LINE=$(grep -m 1 "Elysia listening" "$LOG")
-PORT=${LINE##*:}
+PORT=$(sed -n 's#.*Local:.*:\([0-9]*\)/.*#\1#p' "$LOG")
 curl -sX PUT "http://host.containers.internal:$PORT/api/inngest" --resolve "host.containers.internal:$PORT:127.0.0.1"
 echo
 wait
-"""
+'''
 
 [tasks."db:migrate"]
 description = "Apply Drizzle migrations to the local Postgres"

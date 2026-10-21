@@ -24,7 +24,7 @@ feature.
 ## Install
 
 - [Podman](https://podman.io/) for the Inngest dev server and Postgres.
-- [Bun](https://bun.sh/) `1.2.23` (pinned in `package.json`).
+- [Bun](https://bun.sh/) `1.4.3` (pinned in `package.json`).
 
 ```sh
 bun install
@@ -51,18 +51,19 @@ connection string is stored.
 
 ```sh
 mise run dev:setup     # start the stack; prints the Inngest UI and Postgres URLs
-mise run dev           # Elysia API on an auto-selected port, printed at startup
+mise run dev           # SvelteKit dev server on an auto-selected port, printed at startup
 mise run dev:teardown  # stop the stack
 ```
 
 Nothing binds a fixed port: Podman assigns the Inngest dev server's and
-Postgres's host ports, and the app asks the OS for one, so every workspace gets
-its own and several can run at the same time. The dev tasks read the stack's
-addresses straight from Podman and pass them to the app process, so no ports are
-written down anywhere; `mise run dev:setup` prints the Inngest UI and Postgres
-URLs, and `mise run db:migrate` applies migrations to the running database.
-End-to-end checks read the app's port from its startup output
-(`Elysia listening on http://...:<port>`) to build their curl commands.
+Postgres's host ports, and Vite starts at 5173 and takes the next free port when
+one is busy, so every workspace gets its own and several can run at the same
+time. The dev tasks read the stack's addresses straight from Podman and pass
+them to the app process, so no ports are written down anywhere;
+`mise run dev:setup` prints the Inngest UI and Postgres URLs, and
+`mise run db:migrate` applies migrations to the running database. End-to-end
+checks read the app's port from its startup output
+(`Local:   http://localhost:<port>/`) to build their curl commands.
 
 Once the app is up, the `dev` task reads its port from the startup output and
 registers the functions with the Inngest dev server over the documented `PUT`
@@ -78,7 +79,7 @@ curl -X PUT http://host.containers.internal:<port>/api/inngest \
 Trigger an ingest run:
 
 ```sh
-curl -X POST http://localhost:<port>/process-contracts \
+curl -X POST http://localhost:<port>/api/process-contracts \
   -H "Content-Type: application/json" \
   -d '{"maxDocuments": 10}'
 ```
@@ -86,7 +87,7 @@ curl -X POST http://localhost:<port>/process-contracts \
 List stored document metadata and smart feature results:
 
 ```sh
-curl http://localhost:<port>/contracts
+curl http://localhost:<port>/api/contracts
 ```
 
 - `GET /` serves the Lake County, Illinois branded `Contract Investigation`
@@ -109,8 +110,8 @@ instead of the app's migration-capable role.
 ```sh
 bun run format:check  # Prettier, read-only
 bun run lint          # ESLint locks
-bun run typecheck     # tsc --noEmit
-bun run build         # bundle to dist/
+bun run typecheck     # svelte-check over the app and the API
+bun run build         # build to .vercel/output/
 ```
 
 The pre-commit hook runs all four and rejects the commit on failure.
@@ -122,15 +123,16 @@ round, so the gates work on a fresh clone with nothing but `bun install`.
 ## Deployment
 
 The Vercel project is git-connected, with `main` as the production branch.
-`vercel.json` selects the Bun runtime and sets
-`bun run build && bun run db:migrate` as the build command, so the app ships as
-one bundled function and migrations run against `DATABASE_URL_UNPOOLED` before
-traffic arrives. Set `VERCEL_EXPERIMENTAL_BACKENDS=1` in the project
-environment: it makes Vercel use the bundled function, which avoids the Bun
-runtime's module-resolution crash. The build copies the Deep Chat bundle into
-`public/` after Bun runs, and `functions["index"].includeFiles` puts that folder
-in the root function, where Elysia's static plugin serves it, including
-`index.html` at `/`.
+SvelteKit serves the app through `@sveltejs/adapter-vercel`, configured in
+`vite.config.ts` with `runtime: "bun1.x"` so the functions run on Vercel's Bun
+runtime. `vercel.json` sets `framework: "sveltekit"`, `bunVersion: "1.x"`, and
+the build command `bun run build && bun run db:migrate`, so migrations run
+against `DATABASE_URL_UNPOOLED` before traffic arrives. `vite build` bundles
+every server dependency (`ssr.noExternal`): the adapter copies only the files
+Node would load, so packages with a separate Bun entry point (`memoirist`,
+`jose`) would be missing at runtime. If `VERCEL_EXPERIMENTAL_BACKENDS` is still
+set in the project environment from the old Elysia deploy, delete it; SvelteKit
+does not use it.
 
 The build step needs the project environment set first: `DATABASE_URL` (pooled
 Neon), `DATABASE_URL_UNPOOLED`, `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and the
@@ -143,6 +145,28 @@ curl -X PUT https://<host>/api/inngest
 ## Architecture Decisions
 
 ADRs live in [`docs/decisions/`](docs/decisions/).
+
+- [0000](docs/decisions/0000-use-markdown-architectural-decision-records.md):
+  Use Markdown Architectural Decision Records.
+- [0001](docs/decisions/0001-container-harness-podman-compose.md): Container
+  harness Podman Compose.
+- [0002](docs/decisions/0002-web-framework-elysia.md): Web framework Elysia on
+  Bun.
+- [0003](docs/decisions/0003-workflow-engine-inngest.md): Workflow engine
+  Inngest.
+- [0004](docs/decisions/0004-lint-and-format-toolchain.md): Lint and format
+  toolchain.
+- [0005](docs/decisions/0005-workspace-local-dev-ports.md): Workspace-local dev
+  ports bound by the stack itself.
+- [0006](docs/decisions/0006-data-model-and-database-driver.md): Data model and
+  database driver.
+- [0007](docs/decisions/0007-pdf-attachment-on-every-classification-request.md):
+  PDF attachment on every classification request.
+- [0009](docs/decisions/0009-server-side-chat-agent.md): Server-side chat agent.
+- [0010](docs/decisions/0010-model-written-sql-query-tool.md): Model-written SQL
+  query tool.
+- [0011](docs/decisions/0011-sveltekit-hosts-elysia.md): SvelteKit hosts the
+  app, Elysia serves /api.
 
 ## License
 

@@ -1,10 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "sveltekit",
   "bunVersion": "1.x",
-  "buildCommand": "bun run build && bun run db:migrate",
-  "functions": {
-    "index": {
-      "includeFiles": "public/**"
-    }
-  }
+  "buildCommand": "bun run build && bun run db:migrate"
 }

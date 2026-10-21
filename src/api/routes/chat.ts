@@ -34,7 +34,7 @@ const sseBody = (reply: AsyncIterable<string>): ReadableStream<Uint8Array> => {
 
 export function createChatRoutes(deps: { agent: ChatAgent }) {
   return new Elysia().post(
-    "/api/chat",
+    "/chat",
     ({ body }) =>
       new Response(sseBody(deps.agent({ messages: body.messages })), {
         headers: {
