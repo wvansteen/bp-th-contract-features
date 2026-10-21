@@ -28,6 +28,11 @@ and this project adheres to
   smart feature prompts, with the document PDF sent to the model per feature;
   the results are stored on the document record and returned by
   `GET /contracts`.
+- Contract questions in the chat assistant: a `query_contracts` tool runs
+  model-written, read-only SQL against the stored documents and answers from the
+  rows.
+- SQL tool logging: every `query_contracts` statement is logged at info, and
+  argument, query, and oversized-result failures at error.
 
 ### TODO
 

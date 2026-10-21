@@ -22,6 +22,7 @@
     "drizzle-orm": "^0.45.4",
     "elysia": "^1.4.30",
     "inngest": "^4.24.0",
+    "pgsql-ast-parser": "12.0.2",
     "postgres": "^3.4.9"
   },
   "devDependencies": {

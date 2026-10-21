@@ -1,5 +1,10 @@
 import { OpenRouter } from "@openrouter/sdk";
-import type { ChatMessages, ChatStreamChunk } from "@openrouter/sdk/models";
+import type {
+  ChatFunctionTool,
+  ChatMessages,
+  ChatStreamChunk,
+  ChatToolCall,
+} from "@openrouter/sdk/models";
 
 export type CompletionInput = {
   model: string;
@@ -7,47 +12,163 @@ export type CompletionInput = {
   attachment?: { filename: string; bytes: Uint8Array };
 };
 
-export type ChatTurn = {
-  role: "system" | "user" | "assistant";
-  content: string;
+export type ToolCall = { id: string; name: string; arguments: string };
+
+export type ChatTurn =
+  | { role: "system" | "user"; content: string }
+  | { role: "assistant"; content: string; toolCalls?: readonly ToolCall[] }
+  | { role: "tool"; content: string; toolCallId: string };
+
+export type ChatToolDefinition = {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
 };
 
-export type ChatInput = { model: string; messages: readonly ChatTurn[] };
+export type ChatStreamEvent =
+  | { type: "text"; text: string }
+  | { type: "toolCalls"; calls: readonly ToolCall[] };
+
+export type ToolCallFragment = {
+  index: number;
+  id?: string | undefined;
+  name?: string | undefined;
+  arguments?: string | undefined;
+};
+
+export type ToolCallBuilder = {
+  index: number;
+  id: string;
+  name: string;
+  arguments: string;
+};
+
+export type ChatInput = {
+  model: string;
+  messages: readonly ChatTurn[];
+  tools?: readonly ChatToolDefinition[];
+};
 
 export interface OpenRouterClientPort {
   complete(input: CompletionInput): Promise<string>;
-  chatTextStream(input: ChatInput): AsyncIterable<string>;
+  chatStream(input: ChatInput): AsyncIterable<ChatStreamEvent>;
 }
 
 // Role branch narrows the SDK union without a cast.
-const toMessage = (turn: ChatTurn): ChatMessages =>
-  turn.role === "assistant"
-    ? { role: "assistant", content: turn.content }
-    : turn.role === "system"
-      ? { role: "system", content: turn.content }
-      : { role: "user", content: turn.content };
+export const toMessage = (turn: ChatTurn): ChatMessages => {
+  if (turn.role === "assistant") {
+    return {
+      role: "assistant",
+      content: turn.content,
+      toolCalls: turn.toolCalls?.map((call): ChatToolCall => ({
+        id: call.id,
+        type: "function",
+        function: { name: call.name, arguments: call.arguments },
+      })),
+    };
+  }
+
+  if (turn.role === "tool") {
+    return { role: "tool", content: turn.content, toolCallId: turn.toolCallId };
+  }
+
+  if (turn.role === "system") {
+    return { role: "system", content: turn.content };
+  }
+
+  return { role: "user", content: turn.content };
+};
+
+export const toTool = (definition: ChatToolDefinition): ChatFunctionTool => ({
+  type: "function",
+  function: {
+    name: definition.name,
+    description: definition.description,
+    parameters: definition.parameters,
+  },
+});
+
+// An existing index keeps the first non-empty id and name; arguments concatenate.
+export const mergeToolCallFragments = (
+  fragments: readonly ToolCallFragment[],
+  builders: readonly ToolCallBuilder[],
+): readonly ToolCallBuilder[] =>
+  fragments.reduce((accumulated, fragment) => {
+    const exists = accumulated.some(
+      (builder) => builder.index === fragment.index,
+    );
+
+    if (!exists) {
+      return [
+        ...accumulated,
+        {
+          index: fragment.index,
+          id: fragment.id ?? "",
+          name: fragment.name ?? "",
+          arguments: fragment.arguments ?? "",
+        },
+      ];
+    }
+
+    return accumulated.map((builder) =>
+      builder.index === fragment.index
+        ? {
+            index: builder.index,
+            id: builder.id === "" ? (fragment.id ?? "") : builder.id,
+            name: builder.name === "" ? (fragment.name ?? "") : builder.name,
+            arguments: builder.arguments + (fragment.arguments ?? ""),
+          }
+        : builder,
+    );
+  }, builders);
+
+export const toToolCalls = (
+  builders: readonly ToolCallBuilder[],
+): readonly ToolCall[] =>
+  builders.map((builder) => ({
+    id: builder.id,
+    name: builder.name,
+    arguments: builder.arguments,
+  }));
 
 const textOf = (chunk: ChatStreamChunk): string =>
   chunk.choices[0]?.delta.content ?? "";
 
-async function* textDeltas(
+async function* streamEvents(
   chunks: AsyncIterator<ChatStreamChunk>,
-): AsyncGenerator<string> {
+  builders: readonly ToolCallBuilder[],
+): AsyncGenerator<ChatStreamEvent> {
   const next = await chunks.next();
-  if (next.done) return;
-  yield textOf(next.value);
-  yield* textDeltas(chunks);
+
+  if (next.done) {
+    if (builders.length > 0) {
+      yield { type: "toolCalls", calls: toToolCalls(builders) };
+    }
+    return;
+  }
+
+  const fragments: readonly ToolCallFragment[] =
+    next.value.choices[0]?.delta.toolCalls?.map((call) => ({
+      index: call.index,
+      id: call.id,
+      name: call.function?.name,
+      arguments: call.function?.arguments,
+    })) ?? [];
+
+  yield { type: "text", text: textOf(next.value) };
+  yield* streamEvents(chunks, mergeToolCallFragments(fragments, builders));
 }
 
-async function* streamText(
+async function* streamChat(
   client: OpenRouter,
   input: ChatInput,
-): AsyncGenerator<string> {
+): AsyncGenerator<ChatStreamEvent> {
   const completion = await client.chat.send({
     chatRequest: {
       model: input.model,
       stream: true,
       messages: input.messages.map(toMessage),
+      tools: input.tools?.map(toTool),
     },
   });
 
@@ -57,7 +178,7 @@ async function* streamText(
     );
   }
 
-  yield* textDeltas(completion[Symbol.asyncIterator]());
+  yield* streamEvents(completion[Symbol.asyncIterator](), []);
 }
 
 export function createOpenRouterClient({
@@ -116,8 +237,8 @@ export function createOpenRouterClient({
       return "";
     },
 
-    chatTextStream(input) {
-      return streamText(client, input);
+    chatStream(input) {
+      return streamChat(client, input);
     },
   };
 }
