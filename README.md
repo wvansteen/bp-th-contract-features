@@ -51,18 +51,18 @@ connection string is stored.
 
 ```sh
 mise run dev:setup     # start the stack; prints the Inngest UI and Postgres URLs
-mise run dev           # Elysia API on an auto-selected port, printed at startup
+mise run dev           # SvelteKit dev server on an auto-selected port, printed at startup
 mise run dev:teardown  # stop the stack
 ```
 
 Nothing binds a fixed port: Podman assigns the Inngest dev server's and
-Postgres's host ports, and the app asks the OS for one, so every workspace gets
-its own and several can run at the same time. The dev tasks read the stack's
+Postgres's host ports, and Vite asks the OS for one, so every workspace gets its
+own and several can run at the same time. The dev tasks read the stack's
 addresses straight from Podman and pass them to the app process, so no ports are
 written down anywhere; `mise run dev:setup` prints the Inngest UI and Postgres
 URLs, and `mise run db:migrate` applies migrations to the running database.
 End-to-end checks read the app's port from its startup output
-(`Elysia listening on http://...:<port>`) to build their curl commands.
+(`Local:   http://localhost:<port>/`) to build their curl commands.
 
 Once the app is up, the `dev` task reads its port from the startup output and
 registers the functions with the Inngest dev server over the documented `PUT`
@@ -78,7 +78,7 @@ curl -X PUT http://host.containers.internal:<port>/api/inngest \
 Trigger an ingest run:
 
 ```sh
-curl -X POST http://localhost:<port>/process-contracts \
+curl -X POST http://localhost:<port>/api/process-contracts \
   -H "Content-Type: application/json" \
   -d '{"maxDocuments": 10}'
 ```
@@ -86,7 +86,7 @@ curl -X POST http://localhost:<port>/process-contracts \
 List stored document metadata and smart feature results:
 
 ```sh
-curl http://localhost:<port>/contracts
+curl http://localhost:<port>/api/contracts
 ```
 
 - `GET /` serves the Lake County, Illinois branded `Contract Investigation`
