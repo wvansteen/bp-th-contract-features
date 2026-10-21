@@ -90,6 +90,9 @@ export default tseslint.config(
         createNodeResolver(),
       ],
     },
+  },
+  {
+    files: ["src/api/**"],
     rules: {
       "import-x/no-restricted-paths": [
         "error",
@@ -98,12 +101,21 @@ export default tseslint.config(
           zones: [
             // The backend reaches only into itself.
             { target: "src/api", from: "src", except: ["api"] },
-            // The frontend reaches the backend only through the SvelteKit route.
-            {
-              target: ["src/!(api)/**/!(+server.ts)", "src/*"],
-              from: "src/api",
-            },
           ],
+        },
+      ],
+    },
+  },
+  {
+    // The frontend reaches the backend only through the SvelteKit route.
+    files: ["src/**"],
+    ignores: ["src/api/**", "src/routes/api/[[]...slugs]/+server.ts"],
+    rules: {
+      "import-x/no-restricted-paths": [
+        "error",
+        {
+          basePath: import.meta.dirname,
+          zones: [{ target: "src", from: "src/api" }],
         },
       ],
     },

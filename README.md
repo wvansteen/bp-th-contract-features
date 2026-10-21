@@ -56,12 +56,13 @@ mise run dev:teardown  # stop the stack
 ```
 
 Nothing binds a fixed port: Podman assigns the Inngest dev server's and
-Postgres's host ports, and Vite asks the OS for one, so every workspace gets its
-own and several can run at the same time. The dev tasks read the stack's
-addresses straight from Podman and pass them to the app process, so no ports are
-written down anywhere; `mise run dev:setup` prints the Inngest UI and Postgres
-URLs, and `mise run db:migrate` applies migrations to the running database.
-End-to-end checks read the app's port from its startup output
+Postgres's host ports, and Vite starts at 5173 and takes the next free port when
+one is busy, so every workspace gets its own and several can run at the same
+time. The dev tasks read the stack's addresses straight from Podman and pass
+them to the app process, so no ports are written down anywhere;
+`mise run dev:setup` prints the Inngest UI and Postgres URLs, and
+`mise run db:migrate` applies migrations to the running database. End-to-end
+checks read the app's port from its startup output
 (`Local:   http://localhost:<port>/`) to build their curl commands.
 
 Once the app is up, the `dev` task reads its port from the startup output and
@@ -124,9 +125,11 @@ round, so the gates work on a fresh clone with nothing but `bun install`.
 The Vercel project is git-connected, with `main` as the production branch.
 SvelteKit serves the app through `@sveltejs/adapter-vercel`, configured in
 `vite.config.ts` with `runtime: "bun1.x"` so the functions run on Vercel's Bun
-runtime. `vercel.json` sets `bunVersion: "1.x"` and the build command
-`bun run build && bun run db:migrate`, so migrations run against
-`DATABASE_URL_UNPOOLED` before traffic arrives.
+runtime. `vercel.json` sets `framework: "sveltekit"`, `bunVersion: "1.x"`, and
+the build command `bun run build && bun run db:migrate`, so migrations run
+against `DATABASE_URL_UNPOOLED` before traffic arrives. If
+`VERCEL_EXPERIMENTAL_BACKENDS` is still set in the project environment from the
+old Elysia deploy, delete it; SvelteKit does not use it.
 
 The build step needs the project environment set first: `DATABASE_URL` (pooled
 Neon), `DATABASE_URL_UNPOOLED`, `BOX_APP_TOKEN`, `BOX_FOLDER_ID`, and the
