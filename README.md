@@ -97,9 +97,10 @@ curl http://localhost:<port>/contracts
 The assistant writes its own SQL against the `documents` table. Every statement
 must parse as one read-only `SELECT` or `WITH`, runs inside a read-only
 transaction with a five second timeout, and returns at most 100 rows with the
-PDF bytes removed. This is a proof of concept: a production deployment would
-connect with a dedicated Postgres role limited to `SELECT` on `documents`
-instead of the app's migration-capable role.
+PDF bytes removed. Every statement is logged at info, and argument, query, and
+oversized-result failures are logged at error. This is a proof of concept: a
+production deployment would connect with a dedicated Postgres role limited to
+`SELECT` on `documents` instead of the app's migration-capable role.
 
 ## Development
 

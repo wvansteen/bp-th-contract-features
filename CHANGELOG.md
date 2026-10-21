@@ -31,6 +31,8 @@ and this project adheres to
 - Contract questions in the chat assistant: a `query_contracts` tool runs
   model-written, read-only SQL against the stored documents and answers from the
   rows.
+- SQL tool logging: every `query_contracts` statement is logged at info, and
+  argument, query, and oversized-result failures at error.
 
 ### TODO
 

@@ -1,7 +1,20 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, afterEach, describe, expect, it, spyOn } from "bun:test";
 import type { ContractQuery } from "../db/query";
 import { SMART_FEATURES } from "../smart-features/features";
 import { createQueryContractsTool } from "./tools";
+
+const info = spyOn(console, "info").mockImplementation(() => {});
+const error = spyOn(console, "error").mockImplementation(() => {});
+
+afterEach(() => {
+  info.mockClear();
+  error.mockClear();
+});
+
+afterAll(() => {
+  info.mockRestore();
+  error.mockRestore();
+});
 
 const answering =
   (result: Awaited<ReturnType<ContractQuery>>): ContractQuery =>
@@ -75,6 +88,56 @@ describe("createQueryContractsTool", () => {
       JSON.stringify({
         error: "Result too large. Select fewer columns or rows.",
       }),
+    );
+  });
+
+  it("logs the statement as info", async () => {
+    await tool.run('{"sql":"select document_id from documents"}');
+
+    expect(info).toHaveBeenCalledWith(
+      "query_contracts",
+      "select document_id from documents",
+    );
+  });
+
+  it("logs a query failure as error", async () => {
+    const failure = new Error("relation does not exist");
+    const rejected = createQueryContractsTool({
+      query: failing(failure),
+      features: [],
+    });
+
+    await rejected.run('{"sql":"select missing from documents"}');
+
+    expect(error).toHaveBeenCalledWith(
+      "query_contracts failed",
+      "select missing from documents",
+      failure,
+    );
+  });
+
+  it("logs rejected arguments as error", async () => {
+    await tool.run("not json");
+
+    expect(error).toHaveBeenCalledWith(
+      "query_contracts rejected arguments",
+      "Arguments must be valid JSON",
+    );
+  });
+
+  it("logs an oversized result as error", async () => {
+    const wide = "x".repeat(20_001);
+    const big = createQueryContractsTool({
+      query: answering({ rows: [{ wide }], truncated: false }),
+      features: [],
+    });
+
+    await big.run('{"sql":"select wide from documents"}');
+
+    expect(error).toHaveBeenCalledWith(
+      "query_contracts failed",
+      "select wide from documents",
+      "Result too large. Select fewer columns or rows.",
     );
   });
 });

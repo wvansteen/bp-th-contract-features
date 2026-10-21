@@ -67,16 +67,21 @@ export const createQueryContractsTool = ({
   },
   run: async (argumentsJson) => {
     const argument = sqlOf(argumentsJson);
-    if ("error" in argument) return JSON.stringify({ error: argument.error });
+    if ("error" in argument) {
+      console.error("query_contracts rejected arguments", argument.error);
+      return JSON.stringify({ error: argument.error });
+    }
+    console.info("query_contracts", argument.sql);
     try {
       const payload = JSON.stringify(await query(argument.sql));
       if (payload.length > MAX_RESULT_CHARS) {
-        return JSON.stringify({
-          error: "Result too large. Select fewer columns or rows.",
-        });
+        const error = "Result too large. Select fewer columns or rows.";
+        console.error("query_contracts failed", argument.sql, error);
+        return JSON.stringify({ error });
       }
       return payload;
     } catch (error) {
+      console.error("query_contracts failed", argument.sql, error);
       return JSON.stringify({
         error: error instanceof Error ? error.message : String(error),
       });
